@@ -9,6 +9,8 @@ import {
 import { ptBR } from "date-fns/locale";
 import { supabase } from "../services/supabaseClient";
 import { Modal, Box } from "@mui/material";
+import ArrowBackIosNewRoundedIcon from '@mui/icons-material/ArrowBackIosNewRounded';
+import ArrowForwardIosRoundedIcon from '@mui/icons-material/ArrowForwardIosRounded';
 
 interface Escala {
   dia: string;
@@ -95,19 +97,19 @@ export default function CalendarioMensal({ cpfBusca }: { cpfBusca: string }) {
 
           <div className="flex justify-between items-center mb-3 mt-10 ">
             <button
-              className="px-2 py-1 bg-green-400 text-white rounded-full"
+              className="px-2 py-2 bg-green-400 text-white rounded-full justify-center align-center"
               onClick={() => mudarMes(-1)}
             >
-              ←
+              <ArrowBackIosNewRoundedIcon />
             </button>
             <h2 className="text-xl font-bold">
               {format(dataAtual, "MMMM yyyy", { locale: ptBR }).toUpperCase()}
             </h2>
             <button
-              className="px-2 py-1 bg-green-400 rounded-full text-white"
+              className="px-2 py-2 bg-green-400 rounded-full text-white justify-center align-center"
               onClick={() => mudarMes(1)}
             >
-              →
+              <ArrowForwardIosRoundedIcon/>
             </button>
           </div>
 
