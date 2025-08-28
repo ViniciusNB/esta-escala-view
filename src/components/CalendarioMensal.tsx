@@ -97,7 +97,7 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
   }, [cpfBusca, dataAtual]);
 
   return (
-    <div className="overflow-hidden">
+    <div>
       {funcionarioExiste ? pesquisando && (
         <>
           <h1 className="text-center font-semibold text-white">{nome}</h1>
