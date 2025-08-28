@@ -102,9 +102,9 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
         <>
           <h1 className="text-center font-semibold text-white">{nome}</h1>
 
-          <div className="flex justify-between items-center mb-2 mt-5 ">
+          <div className="flex justify-between items-center mb-2 mt-5 z-11">
             <button
-              className="px-2 py-2 text-white rounded-full justify-center align-center"
+              className="px-2 py-2 text-white rounded-full justify-center align-center z-11"
               onClick={() => mudarMes(-1)}
             >
               <ArrowBackIosNewRoundedIcon />
@@ -113,7 +113,7 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
               {format(dataAtual, "MMMM yyyy", { locale: ptBR }).toUpperCase()}
             </h2>
             <button
-              className="px-2 py-2 rounded-full text-white justify-center align-center"
+              className="px-2 py-2 rounded-full text-white justify-center align-center z-11"
               onClick={() => mudarMes(1)}
             >
               <ArrowForwardIosRoundedIcon />
@@ -182,7 +182,7 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
             })}
           </div>
           <div className={isDesktop ? "absolute top-60 left-0 pl-10" : "left-0 pt-5"}>
-            <div className="border-2 border-gray-400 p-3 pt-4 pb-8 rounded-lg bg-gray-800 backdrop-blur-lg bg-opacity-30">
+            <div className="border-2 border-gray-400 p-3 pt-4 pb-8 rounded-lg bg-gray-800 backdrop-blur-md bg-opacity-30">
               <h1 className="text-center text-[1.2em] font-bold text-white">LEGENDA</h1>
               <div className="border border-gray-400  mb-3" />
 
@@ -253,7 +253,7 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
         </>
       ) : (
         pesquisando ? (
-          <p className="absolute bottom-0 text-center font-semibold text-gray-500">Digite um CPF válido para buscar a escala.</p>
+          <p className="bottom-0 text-center font-semibold text-gray-500">Digite um CPF válido para buscar a escala.</p>
         ) : null
       )}
 
