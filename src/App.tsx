@@ -11,10 +11,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center text-center px-4 overflow-hidden">
-      <div className="absolute top-4 left-4 flex items-center">
-        <a href="https://play.google.com/store/apps/details?id=com.estapar.estaescala&pli=1" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-          <img src={logo} className="w-14 h-auto" alt="Logo Estapar" />
-        </a>
+      <div className="flex items-start justify-start h-14 w-full absolute top-0 left-0 p-4 z-20">
+        <img src={logo} className="w-14 h-auto" alt="Logo Estapar" />
       </div>
 
       {/* Blobs desfocados */}
@@ -24,7 +22,7 @@ export default function App() {
       <div className="absolute bottom-0 right-60 w-96 h-48 bg-green-500 rounded-full blur-3xl opacity-10 animate-pulsar"></div>
 
       {!pesquisando && (
-        <h1 className={`${isDesktop ? "top-40" : "top-60"} max-w-[320px] absolute text-3xl font-semibold text-center text-white`}>Veja a sua escala de trabalho definida para o mês!</h1>
+        <h1 className={`${isDesktop ? "top-40" : "top-60 mx-4"} max-w-[320px] absolute text-3xl font-semibold text-center text-white`}>Veja a sua escala de trabalho definida para o mês!</h1>
       )}
       <div className={`${isDesktop ? "" : "relative"} p-4 mb-15 max-w-5xl mx-auto`}>
         <div className="text-center justify-center relative align-middle">
