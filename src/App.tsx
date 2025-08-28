@@ -30,7 +30,7 @@ export default function App() {
           <input
             type="text"
             placeholder="Buscar por CPF"
-            className="border-2 border-green-500 focus:border-green-500 focus:ring focus:ring-green-500 active:border-green-500 p-2 pl-10 mb-4 rounded-full bg-gray-900 text-gray-300 w-[300px]"
+            className="border-2 border-green-500 focus:border-green-500 focus:ring-2 focus:ring-green-500 active:border-green-500 p-2 pl-10 mb-4 rounded-full bg-gray-900 text-gray-300 w-[300px]"
             value={cpf}
             onChange={(e) => { setCpf(e.target.value); setPesquisando(true); if (e.target.value === "") setPesquisando(false); }}
           />
