@@ -253,7 +253,7 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
         </>
       ) : (
         pesquisando ? (
-          <p className="text-center font-semibold text-gray-500">Digite um CPF válido para buscar a escala.</p>
+          <p className="absolute bottom-0 text-center font-semibold text-gray-500">Digite um CPF válido para buscar a escala.</p>
         ) : null
       )}
 
