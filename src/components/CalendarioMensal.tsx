@@ -155,7 +155,7 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
                 <button
                   key={iso}
                   onClick={() => abrirModalComDia(d)}
-                  className={`z-10 border-2 rounded p-1 flex flex-col items-center justify-center aspect-square ${color} transition-opacity duration-200 hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:ring-2 hover:ring-blue-500`}
+                  className={`z-10  rounded p-1 flex flex-col items-center justify-center aspect-square ${color} transition-opacity duration-200 hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:ring-2 hover:ring-blue-500`}
                 >
                   <div className="text-xs sm:text-sm font-semibold">
                     {format(d, "d", { locale: ptBR })}
