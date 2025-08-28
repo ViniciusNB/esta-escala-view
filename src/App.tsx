@@ -23,7 +23,7 @@ export default function App() {
 
       <div className={`p-4 mb-15 max-w-5xl mx-auto flex flex-col items-center justify-center z-10`}>
         {!pesquisando && (
-          <h1 className={`${isDesktop ? "top-40" : "top-60 mx-4 py-20"} max-w-[320px] text-3xl py-4 font-semibold backdrop-blur-sm text-center text-white opacity-80`}>Veja a sua escala de trabalho mensal em tempo real!</h1>
+          <h1 className={`${isDesktop ? "top-40" : "top-60 mx-4 py-20"} text-5xl max-w-[350px] text-3xl py-4 font-semibold backdrop-blur-sm text-center text-white opacity-80`}>Veja a sua escala de trabalho mensal em tempo real!</h1>
         )}
         <div className="text-center justify-center relative align-middle">
           <SearchRoundedIcon className={`absolute mt-3 ml-3 ${pesquisando ? "text-green-500" : "text-gray-400"}`} />
