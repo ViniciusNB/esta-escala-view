@@ -5,6 +5,13 @@ import {
   eachDayOfInterval,
   format,
   getDay,
+  startOfYear,
+  addMonths,
+  isWithinInterval,
+  parseISO,
+  isSameDay,
+  compareAsc,
+  addDays
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "../services/supabaseClient";
@@ -48,8 +55,10 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false)
-
+  const [mensagemFerias, setMensagemFerias] = useState("");
+  const [periodosFerias, setPeriodosFerias] = useState<string[]>([]);
   const [diaSelecionado, setDiaSelecionado] = useState<Date | undefined>(undefined);
+
   const unidade = diaSelecionado ? escalas.find((e) => e.dia === format(diaSelecionado, "yyyy-MM-dd"))?.unidade : undefined;
   const escalaDoDia = diaSelecionado
     ? escalas.find((e) => e.dia === format(diaSelecionado, "yyyy-MM-dd"))
@@ -62,6 +71,36 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
   }
 
   const [funcionarioExiste, setFuncionarioExiste] = useState(false);
+
+  function agruparPeriodosFerias(escalas: Escala[]) {
+    const diasFerias = escalas
+      .filter(e => e.tipo === "FÉRIAS" && e.dia)
+      .map(e => parseISO(e.dia))
+      .sort(compareAsc);
+
+    const periodos: { inicio: Date; fim: Date }[] = [];
+
+    let grupoAtual: Date[] = [];
+
+    for (let i = 0; i < diasFerias.length; i++) {
+      const dia = diasFerias[i];
+      const anterior = grupoAtual[grupoAtual.length - 1];
+
+      if (!anterior || isSameDay(dia, addDays(anterior, 1))) {
+        grupoAtual.push(dia);
+      } else {
+        periodos.push({ inicio: grupoAtual[0], fim: grupoAtual[grupoAtual.length - 1] });
+        grupoAtual = [dia];
+      }
+    }
+
+    if (grupoAtual.length > 0) {
+      periodos.push({ inicio: grupoAtual[0], fim: grupoAtual[grupoAtual.length - 1] });
+    }
+
+    return periodos.map(p => `${format(p.inicio, "dd/MM/yyyy")} à ${format(p.fim, "dd/MM/yyyy")}`);
+  }
+
 
   useEffect(() => {
     const carregarEscalas = async () => {
@@ -91,12 +130,30 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
         console.error("Erro ao buscar escalas:", escalasError);
         setEscalas([]);
       } else {
-        setEscalas(escalasData || []);
+        if (escalasData && escalasData.length > 0) {
+          setEscalas(escalasData);
+
+          const periodosFerias = agruparPeriodosFerias(escalasData); // usa os dados diretamente
+          setPeriodosFerias(periodosFerias);
+        }
       }
     };
 
     carregarEscalas();
   }, [cpfBusca, dataAtual]);
+
+  useEffect(() => {
+    const ferias = escalas.filter(e => e.tipo === "FÉRIAS");
+    console.log("Férias encontradas:", ferias);
+
+    ferias.forEach((e, i) => {
+      console.log(`Férias ${i + 1}:`, {
+        inicio: e.inicio,
+        fim: e.fim,
+        tipo: e.tipo,
+      });
+    });
+  }, [escalas]);
 
   return (
     <div>
@@ -162,7 +219,7 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
                   <div className="text-xs sm:text-sm font-semibold">
                     {format(d, "d", { locale: ptBR })}
                   </div>
-                  <div className="text-[0.6rem] sm:text-xs font-bold text-center">
+                  <div className={tipo === "FÉRIAS" ? `text-[0.57rem] font-bold text-center` : `text-[0.6rem] font-bold text-center`}>
                     {tipo === "FOLGA"
                       ? "FOLGA"
                       : tipo === "TRABALHAR"
@@ -184,7 +241,7 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
               );
             })}
           </div>
-          <div className={isDesktop ? "absolute top-60 left-0 pl-10" : "left-0 pt-5"}>
+          <div className={isDesktop ? "absolute top-60 right-0 pr-10" : "right-0 pt-5"}>
             <div className="border-2 border-gray-400 p-3 pt-4 pb-8 rounded-lg bg-gray-800 backdrop-blur-md bg-opacity-30">
               <h1 className="text-center text-[1.2em] font-bold text-white">LEGENDA</h1>
               <div className="border border-gray-400  mb-3" />
@@ -250,6 +307,28 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
                     <span>Sem Escala</span>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <div className={isDesktop ? "absolute top-60 left-0 pl-10" : "left-0 pt-5"}>
+            <div className="border-2 border-gray-400 p-3 pt-4 pb-8 rounded-lg bg-gray-800 backdrop-blur-md bg-opacity-30">
+              <h1 className="text-center text-[1.2em] font-bold text-white">DADOS:</h1>
+              <div className="border border-gray-400  mb-3" />
+              <div className="rounded p-2 flex items-center text-center justify-center text-gray-300"> {/* bg-gray-900 border border-gray-600 */}
+
+                {periodosFerias.length > 0 ? (
+                  <div>
+                    <strong>Período de férias:</strong>
+                    <ul>
+                      {periodosFerias.map((p, i) => (
+                        <li key={i}>{p}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <span>Sem férias programadas.</span>
+                )}
               </div>
             </div>
           </div>

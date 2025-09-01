@@ -11,7 +11,7 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 items-center text-center px-4 overflow-y-auto overflow-x-hidden">
-      <div className="flex items-start justify-start h-14 w-full top-0 left-0 p-4 z-20">
+      <div className="flex items-start justify-start h-14 w-full top-0 left-0 p-2 z-20">
         <a href="https://www.estaescala.com.br" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-2">
           <img src={logo} className="w-14 h-auto" alt="Logo Estapar" />
         </a>
