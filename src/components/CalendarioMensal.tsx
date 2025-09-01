@@ -21,6 +21,7 @@ interface Escala {
   almoco_inicio?: string;
   almoco_fim?: string;
   motivo?: string;
+  unidade?: { nome: string };
 }
 
 interface Props {
@@ -49,6 +50,7 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
   const handleClose = () => setOpen(false)
 
   const [diaSelecionado, setDiaSelecionado] = useState<Date | undefined>(undefined);
+  const unidade = diaSelecionado ? escalas.find((e) => e.dia === format(diaSelecionado, "yyyy-MM-dd"))?.unidade : undefined;
   const escalaDoDia = diaSelecionado
     ? escalas.find((e) => e.dia === format(diaSelecionado, "yyyy-MM-dd"))
     : undefined;
@@ -82,7 +84,7 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
 
       const { data: escalasData, error: escalasError } = await supabase
         .from("escalas")
-        .select("*, almoco_inicio, almoco_fim, inicio, fim, motivo")
+        .select("*, almoco_inicio, almoco_fim, inicio, fim, motivo, unidade:unidades(nome)")
         .eq("funcionario_id", funcionario.id);
 
       if (escalasError) {
@@ -175,7 +177,8 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
                                 ? "S/EXT."
                                 : tipo === undefined
                                   ? "S/E"
-                                  : ""}
+                                  : ""
+                    }
                   </div>
                 </button>
               );
@@ -281,6 +284,10 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
               ? format(diaSelecionado, "dd/MM/yyyy", { locale: ptBR })
               : ""}
           </h1>
+
+          {escalaDoDia?.unidade && (
+            <p className="text-center mt-2 font-semibold text-green-500">- {escalaDoDia.unidade?.nome} -</p>
+          )}
 
           <p className="text-center mt-4 text-gray-200 font-semibold">
             {diaSelecionado
