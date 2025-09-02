@@ -19,6 +19,9 @@ import { Modal, Box } from "@mui/material";
 import ArrowBackIosNewRoundedIcon from '@mui/icons-material/ArrowBackIosNewRounded';
 import ArrowForwardIosRoundedIcon from '@mui/icons-material/ArrowForwardIosRounded';
 import { isDesktop, isMobile } from "react-device-detect";
+import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
+import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
+import { useSwipeable } from "react-swipeable";
 
 interface Escala {
   dia: string;
@@ -53,11 +56,13 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
   const blanks = Array.from({ length: primeiroDiaSemana });
   const [nome, setNome] = useState("");
   const [open, setOpen] = useState(false);
+  const [openDados, setOpenDados] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false)
   const [mensagemFerias, setMensagemFerias] = useState("");
   const [periodosFerias, setPeriodosFerias] = useState<string[]>([]);
   const [diaSelecionado, setDiaSelecionado] = useState<Date | undefined>(undefined);
+  const [direction, setDirection] = useState("")
 
   const unidade = diaSelecionado ? escalas.find((e) => e.dia === format(diaSelecionado, "yyyy-MM-dd"))?.unidade : undefined;
   const escalaDoDia = diaSelecionado
@@ -70,7 +75,14 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
     setOpen(true)
   }
 
+
+  const handlers = useSwipeable({
+    onSwipedLeft: () => [mudarMes(1), setDirection("Left")],
+    onSwipedRight: () => [mudarMes(-1), setDirection("Right")]
+  });
+
   const [funcionarioExiste, setFuncionarioExiste] = useState(false);
+  const [unidadeExiste, setUnidadeExiste] = useState(false);
 
   function agruparPeriodosFerias(escalas: Escala[]) {
     const diasFerias = escalas
@@ -118,6 +130,7 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
       }
 
       setFuncionarioExiste(true);
+      if (isDesktop) { setOpenDados(true) }
       setNome(funcionario.nome);
       console.log("Funcionário encontrado:", funcionario.nome);
 
@@ -159,90 +172,129 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
     <div>
       {funcionarioExiste ? pesquisando && (
         <>
-          <h1 className="text-center font-semibold text-white">{nome}</h1>
-
-          <div className="flex justify-between items-center mb-2 mt-5 z-11">
-            <button
-              className="px-2 py-2 text-white rounded-full justify-center align-center z-11"
-              onClick={() => mudarMes(-1)}
-            >
-              <ArrowBackIosNewRoundedIcon />
-            </button>
-            <h2 className="text-gray-300 text-xl font-light">
-              {format(dataAtual, "MMMM yyyy", { locale: ptBR }).toUpperCase()}
-            </h2>
-            <button
-              className="px-2 py-2 rounded-full text-white justify-center align-center z-11"
-              onClick={() => mudarMes(1)}
-            >
-              <ArrowForwardIosRoundedIcon />
-            </button>
-          </div>
-
-          <div className="text-gray-300 grid grid-cols-7 text-center font-semibold text-sm mb-1">
-            {["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"].map((d) => (
-              <div className={d === "SAB" ? `text-green-500` : d === "DOM" ? `text-green-500` : ""} key={d}>{d}</div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-7 gap-1 sm:gap-2 ">
-            {blanks.map((_, i) => (
-              <div key={`b${i}`} />
-            ))}
-            {dias.map((d) => {
-              const iso = format(d, "yyyy-MM-dd");
-              const esc = escalas.find((e) => e.dia === iso);
-              const tipo = esc?.tipo;
-              const color =
-                tipo === "FOLGA"
-                  ? "bg-blue-200 text-blue-800"
-                  : tipo === "TRABALHAR"
-                    ? "bg-green-200 text-green-800"
-                    : tipo === "FÉRIAS"
-                      ? "bg-purple-300 text-purple-900"
-                      : tipo === "FALTA"
-                        ? "bg-red-300 text-red-900"
-                        : tipo === "AFASTADO"
-                          ? "bg-yellow-300 text-yellow-900"
-                          : tipo === "SERVIÇO EXTERNO"
-                            ? "bg-orange-300 text-orange-900"
-                            : tipo === undefined
-                              ? "bg-gray-900 text-white"
-                              : "bg-white";
-
-              return (
-                <button
-                  key={iso}
-                  onClick={() => abrirModalComDia(d)}
-                  className={`z-10  rounded p-1 flex flex-col items-center justify-center aspect-square ${color} transition-opacity duration-200 hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:ring-2 hover:ring-blue-500`}
-                >
-                  <div className="text-xs sm:text-sm font-semibold">
-                    {format(d, "d", { locale: ptBR })}
-                  </div>
-                  <div className={tipo === "FÉRIAS" ? `text-[0.57rem] font-bold text-center` : `text-[0.6rem] font-bold text-center`}>
-                    {tipo === "FOLGA"
-                      ? "FOLGA"
-                      : tipo === "TRABALHAR"
-                        ? "T"
-                        : tipo === "AFASTADO"
-                          ? "AFAST."
-                          : tipo === "FALTA"
-                            ? "FALTA"
-                            : tipo === "FÉRIAS"
-                              ? "FÉRIAS"
-                              : tipo === "SERVIÇO EXTERNO"
-                                ? "S/EXT."
-                                : tipo === undefined
-                                  ? "S/E"
-                                  : ""
-                    }
-                  </div>
+          <div className={isDesktop ? "absolute top-60 left-0 pl-10" : "left-0"}>
+            <div className={`border-2 border-gray-400 p-3 rounded-lg bg-gray-800 animate-escalaV backdrop-blur-md bg-opacity-30`}>
+              <div className="flex px-4">
+                <h1 className="text-center font-semibold text-white mb-0">{nome}</h1>
+                <button className="absolute right-0 m-0 p-0" onClick={() => setOpenDados(!openDados)}>
+                  {openDados ? (
+                    <ExpandMoreRoundedIcon className="text-white text-[2px]" />
+                  ) : (
+                    <ExpandLessRoundedIcon className="text-white w-0" />
+                  )}
                 </button>
-              );
-            })}
+              </div>
+              {openDados && (
+                <>
+                  <div className="border border-gray-400 mb-3 animate-escalaHorizontal" />
+                  <div className="roundedflex items-center text-center justify-center text-gray-300 animate-expandir"> {/* bg-gray-900 border border-gray-600 */}
+                    {periodosFerias.length > 0 ? (
+                      <div>
+                        <strong>Período de férias:</strong>
+                        <ul>
+                          {periodosFerias.map((p, i) => (
+                            <li key={i}>{p}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : (
+                      <span>Sem férias programadas.</span>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div {...handlers}>
+            <div className="flex justify-between items-center mb-2 mt-5 z-11">
+              <button
+                className="px-2 py-2 text-white rounded-full justify-center align-center z-11"
+                onClick={() => [mudarMes(-1), setDirection("Right")]}
+              >
+                <ArrowBackIosNewRoundedIcon />
+              </button>
+              <h2 className="text-gray-300 text-xl font-light">
+                {format(dataAtual, "MMMM yyyy", { locale: ptBR }).toUpperCase()}
+              </h2>
+              <button
+                className="px-2 py-2 rounded-full text-white justify-center align-center z-11"
+                onClick={() => [mudarMes(1), setDirection("Left")]}
+              >
+                <ArrowForwardIosRoundedIcon />
+              </button>
+            </div>
+
+            <div className="text-gray-300 grid grid-cols-7 text-center font-semibold text-sm mb-1">
+              {["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"].map((d) => (
+                <div className={d === "SAB" ? `text-green-500` : d === "DOM" ? `text-green-500` : ""} key={d}>{d}</div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-1 sm:gap-2 ">
+              {blanks.map((_, i) => (
+                <div key={`b${i}`} />
+              ))}
+              {dias.map((d) => {
+                const iso = format(d, "yyyy-MM-dd");
+                const esc = escalas.find((e) => e.dia === iso);
+                const tipo = esc?.tipo;
+                const color =
+                  tipo === "FOLGA"
+                    ? "bg-blue-200 text-blue-800"
+                    : tipo === "TRABALHAR"
+                      ? "bg-green-200 text-green-800"
+                      : tipo === "FÉRIAS"
+                        ? "bg-purple-300 text-purple-900"
+                        : tipo === "FALTA"
+                          ? "bg-red-300 text-red-900"
+                          : tipo === "AFASTADO"
+                            ? "bg-yellow-300 text-yellow-900"
+                            : tipo === "SERVIÇO EXTERNO"
+                              ? "bg-orange-300 text-orange-900"
+                              : tipo === undefined
+                                ? "bg-gray-900 text-white"
+                                : "bg-white";
+
+                return (
+                  <button
+                    key={iso}
+                    onClick={() => abrirModalComDia(d)}
+                    className={`${direction === "Left"
+                      ? "animate-slideRight"
+                      : direction === "Right"
+                        ? "animate-slideLeft"
+                        : ""
+                      } z-10 rounded p-1 flex flex-col items-center justify-center aspect-square ${color} transition-opacity duration-200 hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:ring-2 hover:ring-blue-500`}
+                  >
+                    <div className="text-xs sm:text-sm font-semibold">
+                      {format(d, "d", { locale: ptBR })}
+                    </div>
+                    <div className={tipo === "FÉRIAS" ? `text-[0.57rem] font-bold text-center` : `text-[0.6rem] font-bold text-center`}>
+                      {tipo === "FOLGA"
+                        ? "FOLGA"
+                        : tipo === "TRABALHAR"
+                          ? "T"
+                          : tipo === "AFASTADO"
+                            ? "AFAST."
+                            : tipo === "FALTA"
+                              ? "FALTA"
+                              : tipo === "FÉRIAS"
+                                ? "FÉRIAS"
+                                : tipo === "SERVIÇO EXTERNO"
+                                  ? "S/EXT."
+                                  : tipo === undefined
+                                    ? "S/E"
+                                    : ""
+                      }
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <div className={isDesktop ? "absolute top-60 right-0 pr-10" : "right-0 pt-5"}>
-            <div className="border-2 border-gray-400 p-3 pt-4 pb-8 rounded-lg bg-gray-800 backdrop-blur-md bg-opacity-30">
+            <div className="border-2 border-gray-400 p-3 pt-4 pb-8 rounded-lg animate-escalaV bg-gray-800 backdrop-blur-md bg-opacity-30">
               <h1 className="text-center text-[1.2em] font-bold text-white">LEGENDA</h1>
               <div className="border border-gray-400  mb-3" />
 
@@ -310,35 +362,12 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
               </div>
             </div>
           </div>
-
-          <div className={isDesktop ? "absolute top-60 left-0 pl-10" : "left-0 pt-5"}>
-            <div className="border-2 border-gray-400 p-3 pt-4 pb-8 rounded-lg bg-gray-800 backdrop-blur-md bg-opacity-30">
-              <h1 className="text-center text-[1.2em] font-bold text-white">DADOS:</h1>
-              <div className="border border-gray-400  mb-3" />
-              <div className="rounded p-2 flex items-center text-center justify-center text-gray-300"> {/* bg-gray-900 border border-gray-600 */}
-
-                {periodosFerias.length > 0 ? (
-                  <div>
-                    <strong>Período de férias:</strong>
-                    <ul>
-                      {periodosFerias.map((p, i) => (
-                        <li key={i}>{p}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : (
-                  <span>Sem férias programadas.</span>
-                )}
-              </div>
-            </div>
-          </div>
         </>
       ) : (
         pesquisando ? (
           <p className="bottom-0 text-center font-semibold text-gray-500">Digite um CPF válido para buscar a escala.</p>
         ) : null
       )}
-
 
       <Modal open={open} onClose={handleClose}>
         <Box
