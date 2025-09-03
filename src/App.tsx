@@ -5,6 +5,7 @@ import logo from "./assets/logo.png";
 import PersonSearchRoundedIcon from '@mui/icons-material/PersonSearchRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import { isDesktop, isMobile } from "react-device-detect";
+import { TypeAnimation } from 'react-type-animation';
 
 export default function App() {
   const [cpf, setCpf] = useState("");
@@ -39,19 +40,12 @@ export default function App() {
     <div className="relative min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 items-center text-center px-2 overflow-y-auto overflow-x-hidden">
       <div className="flex items-center justify-between w-full px-4 overflow-hidden">
         {/* Logo */}
-        <a
-          href="https://www.estaescala.com.br"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center"
-        >
-          <img src={logo} className="w-14 h-auto" alt="Logo Estapar" />
-        </a>
+        <img src={logo} className="w-14 h-auto animate-slideDown" alt="Logo Estapar" />
 
         {/* Texto */}
         <div className="flex flex-col text-right leading-none space-y-0 p-0">
-          <h1 className="text-[1.2em] font-semibold text-green-500 m-0 p-0">ESTA</h1>
-          <h1 className="text-[1.2em] font-semibold text-white opacity-80 m-0 p-0">ESCALA</h1>
+          <h1 className="text-[1.2em] font-semibold text-green-500 m-0 p-0 animate-slideRightDuration">ESTA</h1>
+          <h1 className="text-[1.2em] font-semibold text-white opacity-80 m-0 p-0 animate-slideRightDuration">ESCALA</h1>
         </div>
       </div>
 
@@ -66,10 +60,20 @@ export default function App() {
       <div className={`p-4 max-w-5xl mx-auto flex flex-col items-center justify-center z-10`}>
         {!pesquisando && (
           <>
-            <h1 className={`${isDesktop ? "top-40 py-5" : "top-60 mx-4 py-[1.4em]"} text-5xl max-w-[350px] text-3xl py-4 font-semibold backdrop-blur-sm text-center text-white opacity-80`}>Veja a sua escala de trabalho mensal em tempo real!</h1>
+            <TypeAnimation
+              className={`${isDesktop ? "top-40 py-5" : "top-60 mx-4 py-[1.4em]"} text-5xl max-w-[350px] text-3xl py-4 font-semibold backdrop-blur-sm text-center text-white opacity-80`}
+              sequence={[
+                500,
+                'Veja a sua escala de trabalho mensal em tempo real!', // Text to type
+                1000,            // Pause for 1 second
+              ]}
+              wrapper="h1"
+              cursor={true}
+              repeat={0} // Loop animation
+            />
           </>
         )}
-        <div className="text-center justify-center relative align-middle">
+        <div className="text-center justify-center relative align-middle animate-escalaH">
           <SearchRoundedIcon className={`absolute mt-3 ml-3 ${pesquisando ? "text-green-500" : "text-gray-400"}`} />
           <input
             type="text"
@@ -81,11 +85,12 @@ export default function App() {
               setPesquisando(true);
               if (e.target.value === "") setPesquisando(false);
             }}
+
             onBlur={handleSearch}
           />
         </div>
         {cpf && (<CalendarioMensal cpfBusca={cpf} pesquisando={pesquisando} />)}
-        {unidadeBusca && ( <EscalasUnidade unidadeId={unidadeBusca} />)}
+        {unidadeBusca && (<EscalasUnidade unidadeId={unidadeBusca} />)}
       </div>
       <p className="mt-2 text-gray-500 text-[0.8em] text-center z-50">
         © {new Date().getFullYear()} Esta Escala. Todos os direitos reservados.

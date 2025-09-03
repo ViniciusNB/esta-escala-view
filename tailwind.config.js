@@ -13,9 +13,13 @@ export default {
         'pulsar': 'pulsar 3s ease-in-out infinite',
         'expandir': 'expandir 0.6s ease-in-out',
         'escalaHorizontal': 'escalaHorizontal 0.4s ease-in-out',
+        'escalaH': 'escalaH 0.4s ease',
         'escalaV': 'escalaV 0.5s ease-in-out',
         'slideLeft': 'slideLeft 0.5s ease-in-out forwards',
         'slideRight': 'slideRight 0.5s ease-in-out forwards',
+        'slideLeftDuration': 'slideLeftDuration 0.9s ease-in-out forwards',
+        'slideRightDuration': 'slideRightDuration 0.9s ease-in-out forwards',
+        'slideDown': 'slideDown 0.9s ease-in-out forwards',
       },
       keyframes: {
         'pulse-custom': {
@@ -34,6 +38,10 @@ export default {
           '0%': { transform: 'scale(0)', opacity: '0' },
           '100%': { transform: 'scale(1)', opacity: '1' },
         },
+        'escalaH': {
+          '0%': { transform: 'scaleX(0)',},
+          '100%': { transform: 'scaleX(1)',},
+        },
         'escalaV': {
           '0%': { transform: 'scaleX(0.5) scaleY(0)', opacity: '0' },
           '100%': { transform: 'scaleX(1) scaleY(1)', opacity: '1' },
@@ -45,7 +53,19 @@ export default {
         'slideRight': {
           '0%': { transform: 'translateX(200px)', opacity: '0' },
           '100%': { transform: 'translateX(0)', opacity: '1' },
-        }
+        },
+        'slideDown': {
+          '0%': { transform: 'translateY(-50px)', },
+          '100%': { transform: 'translateY(0)', },
+        },
+        'slideLeftDuration': {
+          '0%': { transform: 'translateX(-100px)', opacity: '0' },
+          '100%': { transform: 'translateX(0)', opacity: '1' },
+        },
+        'slideRightDuration': {
+          '0%': { transform: 'translateX(100px)', opacity: '0' },
+          '100%': { transform: 'translateX(0)', opacity: '1' },
+        },
       },
     }
   },

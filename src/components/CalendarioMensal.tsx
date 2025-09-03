@@ -173,37 +173,39 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
       {funcionarioExiste ? pesquisando && (
         <>
           <div className={isDesktop ? "absolute top-60 left-0 pl-10" : "left-0"}>
-            <div className={`border-2 border-gray-400 p-3 rounded-lg bg-gray-800 animate-escalaV backdrop-blur-md bg-opacity-30`}>
-              <div className="flex px-4">
-                <h1 className="text-center font-semibold text-white mb-0">{nome}</h1>
-                <button className="absolute right-0 m-0 p-0" onClick={() => setOpenDados(!openDados)}>
-                  {openDados ? (
-                    <ExpandMoreRoundedIcon className="text-white text-[2px]" />
-                  ) : (
-                    <ExpandLessRoundedIcon className="text-white w-0" />
-                  )}
-                </button>
-              </div>
-              {openDados && (
-                <>
-                  <div className="border border-gray-400 mb-3 animate-escalaHorizontal" />
-                  <div className="roundedflex items-center text-center justify-center text-gray-300 animate-expandir"> {/* bg-gray-900 border border-gray-600 */}
-                    {periodosFerias.length > 0 ? (
-                      <div>
-                        <strong>Período de férias:</strong>
-                        <ul>
-                          {periodosFerias.map((p, i) => (
-                            <li key={i}>{p}</li>
-                          ))}
-                        </ul>
-                      </div>
+            <button className="" onClick={() => setOpenDados(!openDados)}>
+              <div className={`border-2 border-gray-400 p-3 rounded-lg bg-gray-800 animate-escalaV backdrop-blur-md bg-opacity-30`}>
+                <div className="flex px-4">
+                  <h1 className="text-center font-semibold text-white mb-0">{nome}</h1>
+                  <button className="absolute right-0 m-0 p-0" onClick={() => setOpenDados(!openDados)}>
+                    {!openDados ? (
+                      <ExpandMoreRoundedIcon className="text-white text-[2px]" />
                     ) : (
-                      <span>Sem férias programadas.</span>
+                      <ExpandLessRoundedIcon className="text-white w-0" />
                     )}
-                  </div>
-                </>
-              )}
-            </div>
+                  </button>
+                </div>
+                {openDados && (
+                  <>
+                    <div className="border border-gray-400 mb-3 animate-escalaHorizontal" />
+                    <div className="roundedflex items-center text-center justify-center text-gray-300 animate-expandir"> {/* bg-gray-900 border border-gray-600 */}
+                      {periodosFerias.length > 0 ? (
+                        <div>
+                          <strong>Período de férias:</strong>
+                          <ul>
+                            {periodosFerias.map((p, i) => (
+                              <li key={i}>{p}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : (
+                        <span>Sem férias programadas.</span>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </button>
           </div>
 
           <div {...handlers}>
@@ -365,7 +367,7 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
         </>
       ) : (
         pesquisando ? (
-          <p className="bottom-0 text-center font-semibold text-gray-500">Digite um CPF válido para buscar a escala.</p>
+          <p className="bottom-0 text-center font-semibold text-gray-500">Funcionário não encontrado.</p>
         ) : null
       )}
 
