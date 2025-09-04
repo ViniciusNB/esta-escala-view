@@ -17,15 +17,17 @@ export default function ResetSenha() {
         const searchParams = new URLSearchParams(window.location.search);
         const hashParams = new URLSearchParams(window.location.hash.replace("#", "?"));
 
-        const token = searchParams.get("access_token") || hashParams.get("access_token");
+        const token = hashParams.get("access_token") || searchParams.get("access_token");
         const emailParam = searchParams.get("email") || hashParams.get("email");
 
         setAccessToken(token);
         setEmail(emailParam);
+
         console.log("URL atual:", window.location.href);
         console.log("Hash:", window.location.hash);
         console.log("Search:", window.location.search);
     }, []);
+
 
 
     const handleReset = async () => {
