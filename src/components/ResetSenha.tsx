@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = "https://pufggzonjpmgouopxgxk.supabase.co";
-const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1Zmdnem9uanBtZ291b3B4Z3hrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc4ODMxNTgsImV4cCI6MjA2MzQ1OTE1OH0.Huy4QPbYovrRli_FYLZHOY56PuMaHm1m5p9Ihj6oZUA";
+const supabaseAnonKey = "SUA_ANON_KEY_AQUI";
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function ResetSenha() {
@@ -12,18 +12,16 @@ export default function ResetSenha() {
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [mensagem, setMensagem] = useState("");
 
-  // Pega o token e o email da URL
+  // Pega token e email da URL (hash ou query)
   useEffect(() => {
-    const hash = window.location.hash; // #access_token=...
-    const search = window.location.search; // ?email=...
-    const paramsHash = new URLSearchParams(hash.replace("#", "?"));
-    const paramsSearch = new URLSearchParams(search);
+    const searchParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.replace("#", "?"));
 
-    const tokenUrl = paramsHash.get("access_token");
-    const emailUrl = paramsSearch.get("email");
+    const token = searchParams.get("access_token") || hashParams.get("access_token");
+    const emailParam = searchParams.get("email") || hashParams.get("email");
 
-    if (tokenUrl) setAccessToken(tokenUrl);
-    if (emailUrl) setEmail(emailUrl);
+    setAccessToken(token);
+    setEmail(emailParam);
   }, []);
 
   const handleReset = async () => {
@@ -41,8 +39,8 @@ export default function ResetSenha() {
     }
 
     try {
-      // Verifica token de recuperação
-      const { data, error: verifyError } = await supabase.auth.verifyOtp({
+      // 1️⃣ Verifica token de recuperação
+      const { error: verifyError } = await supabase.auth.verifyOtp({
         email,
         token: accessToken,
         type: "recovery",
@@ -53,7 +51,7 @@ export default function ResetSenha() {
         return;
       }
 
-      // Atualiza a senha
+      // 2️⃣ Atualiza a senha
       const { error: updateError } = await supabase.auth.updateUser({
         password: novaSenha,
       });
