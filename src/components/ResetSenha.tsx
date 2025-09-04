@@ -51,8 +51,8 @@ export default function ResetSenha() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-      <div className="bg-white p-8 rounded shadow-md w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4 z-8">
+      <div className="bg-white p-8 rounded shadow-md w-full max-w-md z-8">
         <h2 className="text-2xl font-bold mb-6 text-center">Redefinir Senha</h2>
 
         {mensagem && (
