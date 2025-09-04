@@ -2,21 +2,28 @@ import React, { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = "https://pufggzonjpmgouopxgxk.supabase.co";
-const supabaseAnonKey = "SEU_ANON_KEY";
+const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1Zmdnem9uanBtZ291b3B4Z3hrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc4ODMxNTgsImV4cCI6MjA2MzQ1OTE1OH0.Huy4QPbYovrRli_FYLZHOY56PuMaHm1m5p9Ihj6oZUA";
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function ResetSenha() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
   const [novaSenha, setNovaSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [mensagem, setMensagem] = useState("");
 
+  // Pega o token e o email da URL
   useEffect(() => {
-    const hash = window.location.hash; // pega #access_token=...
-    const match = hash.match(/access_token=([^&]+)/);
-    if (match) {
-      setAccessToken(match[1]);
-    }
+    const hash = window.location.hash; // #access_token=...
+    const search = window.location.search; // ?email=...
+    const paramsHash = new URLSearchParams(hash.replace("#", "?"));
+    const paramsSearch = new URLSearchParams(search);
+
+    const tokenUrl = paramsHash.get("access_token");
+    const emailUrl = paramsSearch.get("email");
+
+    if (tokenUrl) setAccessToken(tokenUrl);
+    if (emailUrl) setEmail(emailUrl);
   }, []);
 
   const handleReset = async () => {
@@ -28,23 +35,31 @@ export default function ResetSenha() {
       setMensagem("As senhas não coincidem.");
       return;
     }
-    if (!accessToken) {
-      setMensagem("Token inválido ou expirado.");
+    if (!accessToken || !email) {
+      setMensagem("Token ou email inválido.");
       return;
     }
 
     try {
-      // Cria um client temporário com o accessToken
-      const supabaseRecuperacao = createClient(supabaseUrl, supabaseAnonKey, {
-        global: { headers: { Authorization: `Bearer ${accessToken}` } },
+      // Verifica token de recuperação
+      const { data, error: verifyError } = await supabase.auth.verifyOtp({
+        email,
+        token: accessToken,
+        type: "recovery",
       });
 
-      const { error } = await supabaseRecuperacao.auth.updateUser({
+      if (verifyError) {
+        setMensagem("Token inválido ou expirado.");
+        return;
+      }
+
+      // Atualiza a senha
+      const { error: updateError } = await supabase.auth.updateUser({
         password: novaSenha,
       });
 
-      if (error) {
-        setMensagem(error.message);
+      if (updateError) {
+        setMensagem(updateError.message);
       } else {
         setMensagem("Senha redefinida com sucesso! Volte ao app para entrar.");
         setNovaSenha("");
