@@ -12,7 +12,7 @@ export default {
         'pulse-custom': 'pulse-custom 5s ease-in-out infinite',
         'pulsar': 'pulsar 3s ease-in-out infinite',
         'expandir': 'expandir 0.6s ease-in-out',
-        'escalaHorizontal': 'escalaHorizontal 0.4s ease-in-out',
+        'escalaHorizontal': 'escalaHorizontal 1s ease-in-out',
         'escalaH': 'escalaH 0.4s ease',
         'escalaV': 'escalaV 0.5s ease-in-out',
         'slideLeft': 'slideLeft 0.5s ease-in-out forwards',
