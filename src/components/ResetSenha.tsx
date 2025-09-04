@@ -11,15 +11,29 @@ export default function ResetSenha() {
   const [mensagem, setMensagem] = useState("");
   const [usuarioLogado, setUsuarioLogado] = useState(false);
 
-  // Checa se o usuário já está autenticado via token do link
+  // Pegar token da URL e abrir sessão
   useEffect(() => {
-    async function checkSession() {
-      const { data } = await supabase.auth.getSession(); // pega sessão atual
-      if (data.session) {
-        setUsuarioLogado(true);
-      }
+    const hash = window.location.hash.replace("#", "?");
+    const params = new URLSearchParams(hash);
+
+    const access_token = params.get("access_token");
+    const refresh_token = params.get("refresh_token");
+
+    if (access_token && refresh_token) {
+      supabase.auth
+        .setSession({
+          access_token,
+          refresh_token,
+        })
+        .then(({ data, error }) => {
+          if (error) {
+            console.error("Erro ao abrir sessão:", error.message);
+          } else if (data.session) {
+            console.log("Sessão aberta com sucesso:", data.session);
+            setUsuarioLogado(true);
+          }
+        });
     }
-    checkSession();
   }, []);
 
   const handleReset = async () => {
@@ -43,9 +57,7 @@ export default function ResetSenha() {
     if (error) {
       setMensagem(error.message);
     } else {
-      setMensagem(
-        "Senha redefinida com sucesso! Você já pode entrar com a nova senha."
-      );
+      setMensagem("Senha redefinida com sucesso! Agora você pode entrar no app.");
       setNovaSenha("");
       setConfirmarSenha("");
     }
