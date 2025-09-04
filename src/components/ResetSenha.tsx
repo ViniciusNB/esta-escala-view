@@ -14,19 +14,19 @@ export default function ResetSenha() {
 
     // Pega token e email da URL (hash ou query)
     useEffect(() => {
-        const searchParams = new URLSearchParams(window.location.search);
-        const hashParams = new URLSearchParams(window.location.hash.replace("#", "?"));
+        const hash = window.location.hash.replace('#', '?'); // substitui # por ?
+        const params = new URLSearchParams(hash);
 
-        const token = hashParams.get("access_token") || searchParams.get("access_token");
-        const emailParam = searchParams.get("email") || hashParams.get("email");
+        const token = params.get('access_token');
+        const emailParam = params.get('email');
 
         setAccessToken(token);
         setEmail(emailParam);
 
-        console.log("URL atual:", window.location.href);
-        console.log("Hash:", window.location.hash);
-        console.log("Search:", window.location.search);
+        console.log("Token:", token);
+        console.log("Email:", emailParam);
     }, []);
+
 
 
 
