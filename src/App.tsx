@@ -6,6 +6,8 @@ import PersonSearchRoundedIcon from '@mui/icons-material/PersonSearchRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import { isDesktop, isMobile } from "react-device-detect";
 import { TypeAnimation } from 'react-type-animation';
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import ResetSenha from './components/ResetSenha';
 
 export default function App() {
   const [cpf, setCpf] = useState("");
@@ -38,6 +40,11 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 items-center text-center px-2 overflow-y-auto overflow-x-hidden">
+      <Router>
+        <Routes>
+          <Route path="/reset-senha" element={<ResetSenha />} />
+        </Routes>
+      </Router>
       <div className="flex items-center justify-between w-full px-4 overflow-hidden">
         {/* Logo */}
         <img src={logo} className="w-14 h-auto animate-slideDown" alt="Logo Estapar" />
