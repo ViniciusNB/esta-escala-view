@@ -64,12 +64,6 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
   const [diaSelecionado, setDiaSelecionado] = useState<Date | undefined>(undefined);
   const [direction, setDirection] = useState("")
 
-  const unidade = diaSelecionado ? escalas.find((e) => e.dia === format(diaSelecionado, "yyyy-MM-dd"))?.unidade : undefined;
-  const escalaDoDia = diaSelecionado
-    ? escalas.find((e) => e.dia === format(diaSelecionado, "yyyy-MM-dd"))
-    : undefined;
-
-
   const abrirModalComDia = (dia: Date) => {
     setDiaSelecionado(dia)
     setOpen(true)
@@ -91,7 +85,6 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
       .sort(compareAsc);
 
     const periodos: { inicio: Date; fim: Date }[] = [];
-
     let grupoAtual: Date[] = [];
 
     for (let i = 0; i < diasFerias.length; i++) {
@@ -113,60 +106,52 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
     return periodos.map(p => `${format(p.inicio, "dd/MM/yyyy")} à ${format(p.fim, "dd/MM/yyyy")}`);
   }
 
+  const API_URL = "https://esta-escala.vercel.app/api/escalas";
 
   useEffect(() => {
     const carregarEscalas = async () => {
-      const { data: funcionario, error: funcionarioError } = await supabase
-        .from("funcionarios")
-        .select("id, nome")
-        .eq("cpf", cpfBusca)
-        .single();
+      if (!cpfBusca) return;
 
-      if (funcionarioError || !funcionario) {
-        console.error("Funcionário não encontrado");
+      try {
+        // Caminho relativo, funciona com proxy em dev e produção
+        const res = await fetch(`/api/escalas?cpf=${cpfBusca}`);
+
+        if (!res.ok) {
+          console.error("Erro ao chamar backend:", res.statusText);
+          setFuncionarioExiste(false);
+          setEscalas([]);
+          return;
+        }
+
+        const data = await res.json();
+
+        if (!data.funcionario) {
+          console.error("Funcionário não encontrado no backend");
+          setFuncionarioExiste(false);
+          setEscalas([]);
+          return;
+        }
+
+        setFuncionarioExiste(true);
+        setNome(data.funcionario.nome || "");
+        setEscalas(data.escalas || []);
+
+        if (isDesktop) setOpenDados(true);
+
+        const periodos = agruparPeriodosFerias(data.escalas || []);
+        setPeriodosFerias(periodos);
+
+      } catch (err) {
+        console.error("Erro ao chamar backend:", err);
         setFuncionarioExiste(false);
         setEscalas([]);
-        return;
-      }
-
-      setFuncionarioExiste(true);
-      if (isDesktop) { setOpenDados(true) }
-      setNome(funcionario.nome);
-      console.log("Funcionário encontrado:", funcionario.nome);
-
-      const { data: escalasData, error: escalasError } = await supabase
-        .from("escalas")
-        .select("*, almoco_inicio, almoco_fim, inicio, fim, motivo, unidade:unidades(nome)")
-        .eq("funcionario_id", funcionario.id);
-
-      if (escalasError) {
-        console.error("Erro ao buscar escalas:", escalasError);
-        setEscalas([]);
-      } else {
-        if (escalasData && escalasData.length > 0) {
-          setEscalas(escalasData);
-
-          const periodosFerias = agruparPeriodosFerias(escalasData); // usa os dados diretamente
-          setPeriodosFerias(periodosFerias);
-        }
       }
     };
+
 
     carregarEscalas();
   }, [cpfBusca, dataAtual]);
 
-  useEffect(() => {
-    const ferias = escalas.filter(e => e.tipo === "FÉRIAS");
-    console.log("Férias encontradas:", ferias);
-
-    ferias.forEach((e, i) => {
-      console.log(`Férias ${i + 1}:`, {
-        inicio: e.inicio,
-        fim: e.fim,
-        tipo: e.tipo,
-      });
-    });
-  }, [escalas]);
 
   return (
     <div>
@@ -388,45 +373,44 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
             border: '2px solid #a7a7a7ff',
           }}
         >
-
           <h1 className="text-[1.8em] font-semibold text-center text-green-500">
             {diaSelecionado
               ? format(diaSelecionado, "dd/MM/yyyy", { locale: ptBR })
               : ""}
           </h1>
 
-          {escalaDoDia?.unidade && (
-            <p className="text-center mt-2 font-semibold text-green-500">- {escalaDoDia.unidade?.nome} -</p>
+          {diaSelecionado && escalas.find(e => e.dia === format(diaSelecionado, "yyyy-MM-dd"))?.unidade && (
+            <p className="text-center mt-2 font-semibold text-green-500">
+              - {escalas.find(e => e.dia === format(diaSelecionado, "yyyy-MM-dd"))?.unidade?.nome} -
+            </p>
           )}
 
           <p className="text-center mt-4 text-gray-200 font-semibold">
             {diaSelecionado
-              ? escalas.find((e) => e.dia === format(diaSelecionado, "yyyy-MM-dd"))
-                ? `${escalas.find((e) => e.dia === format(diaSelecionado, "yyyy-MM-dd"))
-                  ?.tipo
-                }`
+              ? escalas.find(e => e.dia === format(diaSelecionado, "yyyy-MM-dd"))
+                ? escalas.find(e => e.dia === format(diaSelecionado, "yyyy-MM-dd"))?.tipo
                 : "Sem escala registrada."
               : ""}
           </p>
 
-          {escalaDoDia?.motivo && (
-            <p className="text-center mt-2 italic font-semibold text-gray-200">Observação: {escalaDoDia.motivo}</p>
+          {diaSelecionado && escalas.find(e => e.dia === format(diaSelecionado, "yyyy-MM-dd"))?.motivo && (
+            <p className="text-center mt-2 italic font-semibold text-gray-200">
+              Observação: {escalas.find(e => e.dia === format(diaSelecionado, "yyyy-MM-dd"))?.motivo}
+            </p>
           )}
 
-          {escalaDoDia?.tipo === "TRABALHAR" ? (
+          {diaSelecionado && escalas.find(e => e.dia === format(diaSelecionado, "yyyy-MM-dd"))?.tipo === "TRABALHAR" && (
             <>
               <div className="mt-4 grid grid-cols-2 gap-4 text-center text-gray-200">
-                <h1>Entrada: {escalaDoDia?.inicio?.slice(0, 5).replace(":", "h") || "-"}</h1>
-                <h1>Saída: {escalaDoDia?.fim?.slice(0, 5).replace(":", "h") || "-"}</h1>
+                <h1>Entrada: {escalas.find(e => e.dia === format(diaSelecionado, "yyyy-MM-dd"))?.inicio?.slice(0, 5).replace(":", "h") || "-"}</h1>
+                <h1>Saída: {escalas.find(e => e.dia === format(diaSelecionado, "yyyy-MM-dd"))?.fim?.slice(0, 5).replace(":", "h") || "-"}</h1>
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-4 text-center text-gray-200">
-                <h1>Almoço: {escalaDoDia?.almoco_inicio?.slice(0, 5).replace(":", "h") || "-"}</h1>
-                <h1>Saída: {escalaDoDia?.almoco_fim?.slice(0, 5).replace(":", "h") || "-"}</h1>
+                <h1>Almoço: {escalas.find(e => e.dia === format(diaSelecionado, "yyyy-MM-dd"))?.almoco_inicio?.slice(0, 5).replace(":", "h") || "-"}</h1>
+                <h1>Saída: {escalas.find(e => e.dia === format(diaSelecionado, "yyyy-MM-dd"))?.almoco_fim?.slice(0, 5).replace(":", "h") || "-"}</h1>
               </div>
             </>
-          ) : (
-            <h1></h1>
           )}
         </Box>
       </Modal>

@@ -48,97 +48,103 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
 
   const isWeekend = (d: Date) => {
     const w = getDay(d);
-    return w === 0 || w === 6; // dom (0) ou sáb (6)
+    return w === 0 || w === 6; // domingo (0) ou sábado (6)
   };
 
-  function formatHora(hora: string | null | undefined): string {
-    if (!hora) return "--";
-    return hora.slice(0, 5);
-  }
+  const formatHora = (hora?: string | null) => (hora ? hora.slice(0, 5) : "--");
 
   useEffect(() => {
     const carregar = async () => {
-      type FuncionarioUnidade = { funcionario: Funcionario };
+      try {
+        // 🔹 Nome da unidade
+        // 🔹 Nome da unidade
+        const { data: unidadeData, error: unidadeError } = await supabase
+          .from("unidades")
+          .select("nome")
+          .eq("id", unidadeId)
+          .maybeSingle();
 
-      // busca nome da unidade
-      const { data: unidadeData } = await supabase
-        .from("unidades")
-        .select("nome")
-        .eq("id", unidadeId)
-        .single();
+        if (unidadeError) console.warn("Erro ao buscar unidade:", unidadeError);
+        if (unidadeData?.nome) {
+          setNomeUnidade(unidadeData.nome);
+          setUnidadeEncontrada(true); // unidade existe, independente de funcionários
+        } else {
+          setUnidadeEncontrada(false);
+        }
 
-      if (unidadeData?.nome) {
-        setNomeUnidade(unidadeData.nome);
-      }
+        // 🔹 Funcionários
+        const { data: funcData, error: funcError } = await supabase
+          .from("funcionarios_unidades")
+          .select("*, funcionarios(id,nome)")
+          .eq("unidade_id", unidadeId);
 
-      // funcionários da unidade pesquisada
-      const { data: fu, error } = await supabase
-        .from("funcionarios_unidades")
-        .select("funcionario:funcionarios(id, nome)")
-        .eq("unidade_id", unidadeId);
+        if (funcError) console.warn("Erro ao buscar funcionários:", funcError);
 
-      if (error || !fu || fu.length === 0) {
+        const ordenado = (funcData || [])
+          .filter((r) => r.funcionarios)
+          .sort((a, b) => a.funcionarios.nome.localeCompare(b.funcionarios.nome));
+
+        setFuncionarios(ordenado.map((r) => r.funcionarios));
+
+
+        // 🔹 Escalas do mês
+        const inicioStr = format(inicioMes, "yyyy-MM-dd");
+        const fimStr = format(fimMes, "yyyy-MM-dd");
+
+        const { data: es, error: escalaError } = await supabase
+          .from("escalas")
+          .select("*, unidade:unidades(id,nome)")
+          .eq("unidade_id", unidadeId)
+          .gte("dia", inicioStr)
+          .lte("dia", fimStr);
+
+        if (escalaError) console.warn("Erro ao buscar escalas:", escalaError);
+        console.log("Escalas retornadas:", es);
+
+        setEscalas((es as Escala[]) || []);
+      } catch (err) {
+        console.error("Erro ao carregar escalas/unidade:", err);
         setUnidadeEncontrada(false);
-        return;
       }
-
-      const ordenado = (fu as unknown as FuncionarioUnidade[] | null)?.sort(
-        (a, b) => a.funcionario.nome.localeCompare(b.funcionario.nome)
-      );
-
-      setFuncionarios((ordenado || []).map((r) => r.funcionario));
-      setUnidadeEncontrada(true);
-
-      // escalas do mês, trazendo também info da unidade
-      const { data: es } = await supabase
-        .from("escalas")
-        .select("*, unidade:unidades(id, nome)")
-        .gte("dia", format(inicioMes, "yyyy-MM-dd"))
-        .lte("dia", format(fimMes, "yyyy-MM-dd"));
-
-      setEscalas((es as Escala[]) || []);
     };
 
     carregar();
   }, [unidadeId, dataAtual]);
 
+
+
   const corTipo = (tipo?: string) =>
     tipo === "FOLGA"
       ? "bg-blue-200 text-blue-800"
       : tipo === "TRABALHAR"
-      ? "bg-green-200 text-green-800"
-      : tipo === "FÉRIAS"
-      ? "bg-purple-300 text-purple-900"
-      : tipo === "FALTA"
-      ? "bg-red-300 text-red-900"
-      : tipo === "AFASTADO"
-      ? "bg-yellow-300 text-yellow-900"
-      : tipo === "SERVIÇO EXTERNO"
-      ? "bg-orange-300 text-orange-900"
-      : "bg-white text-gray-800";
+        ? "bg-green-200 text-green-800"
+        : tipo === "FÉRIAS"
+          ? "bg-purple-300 text-purple-900"
+          : tipo === "FALTA"
+            ? "bg-red-300 text-red-900"
+            : tipo === "AFASTADO"
+              ? "bg-yellow-300 text-yellow-900"
+              : tipo === "SERVIÇO EXTERNO"
+                ? "bg-orange-300 text-orange-900"
+                : "bg-gray-100 text-gray-800";
 
   return (
     <div className={`${isDesktop ? "w-[80em]" : "w-full"} z-40`}>
       {unidadeEncontrada ? (
         <>
-          {/* 🔹 Nome da unidade pesquisada */}
-          <h1 className="text-center text-2xl font-bold text-green-500 mb-4">{nomeUnidade}</h1>
+          <h1 className="text-center text-2xl font-bold text-green-500 mb-4">
+            {nomeUnidade}
+          </h1>
 
           {/* Navegação de mês */}
           <div className="flex justify-between items-center mb-2">
-            <button
-              className="px-2 py-2 text-white rounded-full"
-              onClick={() => mudarMes(-1)}
-            >
+            <button className="px-2 py-2 text-white rounded-full" onClick={() => mudarMes(-1)}>
               <ArrowBackIosNewRoundedIcon />
             </button>
             <h2 className="text-gray-300 text-xl font-light">
               {format(dataAtual, "MMMM yyyy", { locale: ptBR }).toUpperCase()}
             </h2>
-            <button
-              className="px-2 py-2 text-white rounded-full"
-              onClick={() => mudarMes(1)}
-            >
+            <button className="px-2 py-2 text-white rounded-full" onClick={() => mudarMes(1)}>
               <ArrowForwardIosRoundedIcon />
             </button>
           </div>
@@ -154,16 +160,13 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
                   {diasMes.map((d) => (
                     <th
                       key={d.toISOString()}
-                      className={`px-3 py-2 border border-gray-700 text-center text-xs sm:text-sm font-medium whitespace-nowrap ${
-                        isWeekend(d) ? "bg-gray-800/30" : "bg-gray-800/10"
-                      }`}
+                      className={`px-3 py-2 border border-gray-700 text-center text-xs sm:text-sm font-medium whitespace-nowrap ${isWeekend(d) ? "bg-gray-800/30" : "bg-gray-800/10"
+                        }`}
                     >
                       {format(d, "d", { locale: ptBR })}
                       <br />
                       <span
-                        className={`text-[0.65rem] ${
-                          isWeekend(d) ? "text-green-500" : "text-gray-300"
-                        }`}
+                        className={`text-[0.65rem] ${isWeekend(d) ? "text-green-500" : "text-gray-300"}`}
                       >
                         {format(d, "EEE", { locale: ptBR }).toUpperCase()}
                       </span>
@@ -176,12 +179,10 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
                 {funcionarios.map((f, idx) => (
                   <tr
                     key={f.id}
-                    className={`group ${
-                      idx % 2 === 0 ? "bg-gray-50" : "bg-white"
-                    } transition-colors`}
+                    className={`group ${idx % 2 === 0 ? "bg-gray-50" : "bg-white"} transition-colors`}
                   >
                     <td
-                      className="sticky left-0 z-20 bg-white border border-gray-600 px-1 py-2 font-semibold max-w-[120px] sm:max-w-[140px] truncate transition group-hover:brightness-75"
+                      className="sticky left-0 z-20 bg-white border border-gray-600 px-1 py-2 font-semibold max-w-[140px] truncate"
                       title={f.nome}
                     >
                       {f.nome}
@@ -189,30 +190,37 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
 
                     {diasMes.map((d) => {
                       const iso = format(d, "yyyy-MM-dd");
-                      const escala = escalas.find(
-                        (e) => e.funcionario_id === f.id && e.dia === iso
-                      );
+
+                      // Procura a escala correta do funcionário
+                      const escala = escalas.find((e) => {
+                        if (!e.dia) return false;
+                        const diaEscala = e.dia.slice ? e.dia.slice(0, 10) : format(new Date(e.dia), "yyyy-MM-dd");
+                        return e.funcionario_id === f.id && diaEscala === iso;
+                      });
+
                       const tipo = escala?.tipo;
+
+                      // Define cor base considerando tipo e fim de semana
+                      const cor = tipo
+                        ? corTipo(tipo)
+                        : isWeekend(d)
+                          ? "bg-gray-200 text-gray-700"
+                          : "bg-gray-50 text-gray-800";
 
                       return (
                         <td
                           key={iso}
-                          className={`px-2 py-2 text-center border border-gray-600 transition group-hover:brightness-75 ${corTipo(
-                            tipo
-                          )}`}
+                          className={`px-2 py-2 text-center border border-gray-600 transition group-hover:brightness-75 ${cor}`}
                         >
-                          {tipo === "TRABALHAR" ? (
+                          {tipo === "TRABALHAR" && escala ? (
                             <div className="flex flex-col text-[0.7rem] sm:text-[0.85rem] leading-tight">
                               <span className="font-medium">
-                                {formatHora(escala?.inicio)} - {formatHora(escala?.fim)}
+                                {formatHora(escala.inicio)} - {formatHora(escala.fim)}
                               </span>
                               <span className="italic text-gray-700 text-[0.6rem] sm:text-[0.75rem]">
-                                {formatHora(escala?.almoco_inicio)} -{" "}
-                                {formatHora(escala?.almoco_fim)}
+                                {formatHora(escala.almoco_inicio)} - {formatHora(escala.almoco_fim)}
                               </span>
-
-                              {/* 🔹 Nome da unidade se for diferente da pesquisada */}
-                              {escala?.unidade && escala.unidade.id !== unidadeId && (
+                              {escala.unidade && escala.unidade.id !== unidadeId && (
                                 <span className="mt-1 text-[0.6rem] text-red-600 font-semibold">
                                   {escala.unidade.nome}
                                 </span>
@@ -229,6 +237,7 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
                   </tr>
                 ))}
               </tbody>
+
             </table>
           </div>
         </>
