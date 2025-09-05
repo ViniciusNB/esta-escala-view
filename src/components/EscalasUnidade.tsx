@@ -48,7 +48,7 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
 
   const isWeekend = (d: Date) => {
     const w = getDay(d);
-    return w === 0 || w === 6; // domingo (0) ou sábado (6)
+    return w === 0 || w === 6;
   };
 
   const formatHora = (hora?: string | null) => (hora ? hora.slice(0, 5) : "--");
@@ -56,7 +56,6 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
   useEffect(() => {
     const carregar = async () => {
       try {
-        // 🔹 Nome da unidade
         // 🔹 Nome da unidade
         const { data: unidadeData, error: unidadeError } = await supabase
           .from("unidades")
@@ -67,7 +66,7 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
         if (unidadeError) console.warn("Erro ao buscar unidade:", unidadeError);
         if (unidadeData?.nome) {
           setNomeUnidade(unidadeData.nome);
-          setUnidadeEncontrada(true); // unidade existe, independente de funcionários
+          setUnidadeEncontrada(true);
         } else {
           setUnidadeEncontrada(false);
         }
@@ -85,7 +84,6 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
           .sort((a, b) => a.funcionarios.nome.localeCompare(b.funcionarios.nome));
 
         setFuncionarios(ordenado.map((r) => r.funcionarios));
-
 
         // 🔹 Escalas do mês
         const inicioStr = format(inicioMes, "yyyy-MM-dd");
@@ -110,8 +108,6 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
 
     carregar();
   }, [unidadeId, dataAtual]);
-
-
 
   const corTipo = (tipo?: string) =>
     tipo === "FOLGA"
@@ -160,14 +156,11 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
                   {diasMes.map((d) => (
                     <th
                       key={d.toISOString()}
-                      className={`px-3 py-2 border border-gray-700 text-center text-xs sm:text-sm font-medium whitespace-nowrap ${isWeekend(d) ? "bg-gray-800/30" : "bg-gray-800/10"
-                        }`}
+                      className={`px-3 py-2 border border-gray-700 text-center text-xs sm:text-sm font-medium whitespace-nowrap ${isWeekend(d) ? "bg-gray-800/30" : "bg-gray-800/10"}`}
                     >
                       {format(d, "d", { locale: ptBR })}
                       <br />
-                      <span
-                        className={`text-[0.65rem] ${isWeekend(d) ? "text-green-500" : "text-gray-300"}`}
-                      >
+                      <span className={`text-[0.65rem] ${isWeekend(d) ? "text-green-500" : "text-gray-300"}`}>
                         {format(d, "EEE", { locale: ptBR }).toUpperCase()}
                       </span>
                     </th>
@@ -176,50 +169,47 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
               </thead>
 
               <tbody>
+                {funcionarios.length === 0 && (
+                  <tr>
+                    <td colSpan={diasMes.length + 1} className="text-center py-4 text-gray-500">
+                      Sem funcionários
+                    </td>
+                  </tr>
+                )}
+
                 {funcionarios.map((f, idx) => (
-                  <tr
-                    key={f.id}
-                    className={`group ${idx % 2 === 0 ? "bg-gray-50" : "bg-white"} transition-colors`}
-                  >
-                    <td
-                      className="sticky left-0 z-20 bg-white border border-gray-600 px-1 py-2 font-semibold max-w-[140px] truncate"
-                      title={f.nome}
-                    >
+                  <tr key={f.id} className={`group ${idx % 2 === 0 ? "bg-gray-50" : "bg-white"} transition-colors`}>
+                    <td className="sticky left-0 z-20 bg-white border border-gray-600 px-1 py-2 font-semibold max-w-[140px] truncate" title={f.nome}>
                       {f.nome}
                     </td>
 
                     {diasMes.map((d) => {
                       const iso = format(d, "yyyy-MM-dd");
 
-                      // Procura a escala correta do funcionário
                       const escala = escalas.find((e) => {
                         if (!e.dia) return false;
-                        const diaEscala = e.dia.slice ? e.dia.slice(0, 10) : format(new Date(e.dia), "yyyy-MM-dd");
+                        const diaEscala = format(new Date(e.dia), "yyyy-MM-dd");
                         return e.funcionario_id === f.id && diaEscala === iso;
                       });
 
                       const tipo = escala?.tipo;
-
-                      // Define cor base considerando tipo e fim de semana
-                      const cor = tipo
-                        ? corTipo(tipo)
-                        : isWeekend(d)
-                          ? "bg-gray-200 text-gray-700"
-                          : "bg-gray-50 text-gray-800";
+                      const cor = corTipo(tipo);
 
                       return (
-                        <td
-                          key={iso}
-                          className={`px-2 py-2 text-center border border-gray-600 transition group-hover:brightness-75 ${cor}`}
-                        >
-                          {tipo === "TRABALHAR" && escala ? (
+                        <td key={iso} className={`px-2 py-2 text-center border border-gray-600 transition group-hover:brightness-75 ${cor}`}>
+                          {escala ? (
                             <div className="flex flex-col text-[0.7rem] sm:text-[0.85rem] leading-tight">
-                              <span className="font-medium">
-                                {formatHora(escala.inicio)} - {formatHora(escala.fim)}
-                              </span>
-                              <span className="italic text-gray-700 text-[0.6rem] sm:text-[0.75rem]">
-                                {formatHora(escala.almoco_inicio)} - {formatHora(escala.almoco_fim)}
-                              </span>
+                              <span className="font-bold">{tipo}</span>
+                              {escala.inicio && escala.fim && (
+                                <span className="text-[0.65rem] italic">
+                                  {formatHora(escala.inicio)} - {formatHora(escala.fim)}
+                                </span>
+                              )}
+                              {escala.almoco_inicio && escala.almoco_fim && (
+                                <span className="text-[0.6rem] italic text-gray-700">
+                                  {formatHora(escala.almoco_inicio)} - {formatHora(escala.almoco_fim)}
+                                </span>
+                              )}
                               {escala.unidade && escala.unidade.id !== unidadeId && (
                                 <span className="mt-1 text-[0.6rem] text-red-600 font-semibold">
                                   {escala.unidade.nome}
@@ -227,9 +217,7 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
                               )}
                             </div>
                           ) : (
-                            <span className="text-[0.7rem] sm:text-[0.85rem] font-bold">
-                              {tipo || "N/A"}
-                            </span>
+                            <span className="text-[0.7rem] sm:text-[0.85rem] font-bold">N/A</span>
                           )}
                         </td>
                       );
@@ -237,7 +225,6 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
                   </tr>
                 ))}
               </tbody>
-
             </table>
           </div>
         </>
