@@ -1,3 +1,4 @@
+// CalendarioMensal.tsx
 import { useState, useEffect } from "react";
 import {
   startOfMonth,
@@ -5,22 +6,19 @@ import {
   eachDayOfInterval,
   format,
   getDay,
-  startOfYear,
   addMonths,
-  isWithinInterval,
   parseISO,
   isSameDay,
   compareAsc,
   addDays
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { supabase } from "../services/supabaseClient";
 import { Modal, Box } from "@mui/material";
-import ArrowBackIosNewRoundedIcon from '@mui/icons-material/ArrowBackIosNewRounded';
-import ArrowForwardIosRoundedIcon from '@mui/icons-material/ArrowForwardIosRounded';
-import { isDesktop, isMobile } from "react-device-detect";
-import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
-import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
+import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
+import ArrowForwardIosRoundedIcon from "@mui/icons-material/ArrowForwardIosRounded";
+import { isDesktop } from "react-device-detect";
+import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
+import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import { useSwipeable } from "react-swipeable";
 
 interface Escala {
@@ -34,54 +32,46 @@ interface Escala {
   unidade?: { nome: string };
 }
 
-interface Props {
+export default function CalendarioMensal({
+  cpfBusca,
+  pesquisando,
+}: {
+  cpfBusca: string;
   pesquisando: boolean;
-}
-
-export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: string; pesquisando: boolean }) {
+}) {
   const [dataAtual, setDataAtual] = useState(new Date());
   const [escalas, setEscalas] = useState<Escala[]>([]);
+  const [nome, setNome] = useState("");
+  const [open, setOpen] = useState(false);
+  const [openDados, setOpenDados] = useState(false);
+  const [periodosFerias, setPeriodosFerias] = useState<string[]>([]);
+  const [diaSelecionado, setDiaSelecionado] = useState<Date | undefined>();
+  const [direction, setDirection] = useState("");
+  const [funcionarioExiste, setFuncionarioExiste] = useState(false);
 
   const inicioMes = startOfMonth(dataAtual);
   const fimMes = endOfMonth(dataAtual);
   const dias = eachDayOfInterval({ start: inicioMes, end: fimMes });
 
-  const mudarMes = (delta: number) => {
-    const nova = new Date(dataAtual);
-    nova.setMonth(dataAtual.getMonth() + delta);
-    setDataAtual(nova);
-  };
-
+  const mudarMes = (delta: number) => setDataAtual(addMonths(dataAtual, delta));
   const primeiroDiaSemana = getDay(inicioMes);
   const blanks = Array.from({ length: primeiroDiaSemana });
-  const [nome, setNome] = useState("");
-  const [open, setOpen] = useState(false);
-  const [openDados, setOpenDados] = useState(false);
-  const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false)
-  const [mensagemFerias, setMensagemFerias] = useState("");
-  const [periodosFerias, setPeriodosFerias] = useState<string[]>([]);
-  const [diaSelecionado, setDiaSelecionado] = useState<Date | undefined>(undefined);
-  const [direction, setDirection] = useState("")
 
+  const handleClose = () => setOpen(false);
   const abrirModalComDia = (dia: Date) => {
-    setDiaSelecionado(dia)
-    setOpen(true)
-  }
-
+    setDiaSelecionado(dia);
+    setOpen(true);
+  };
 
   const handlers = useSwipeable({
     onSwipedLeft: () => [mudarMes(1), setDirection("Left")],
-    onSwipedRight: () => [mudarMes(-1), setDirection("Right")]
+    onSwipedRight: () => [mudarMes(-1), setDirection("Right")],
   });
-
-  const [funcionarioExiste, setFuncionarioExiste] = useState(false);
-  const [unidadeExiste, setUnidadeExiste] = useState(false);
 
   function agruparPeriodosFerias(escalas: Escala[]) {
     const diasFerias = escalas
-      .filter(e => e.tipo === "FÉRIAS" && e.dia)
-      .map(e => parseISO(e.dia))
+      .filter((e) => e.tipo === "FÉRIAS" && e.dia)
+      .map((e) => parseISO(e.dia))
       .sort(compareAsc);
 
     const periodos: { inicio: Date; fim: Date }[] = [];
@@ -103,18 +93,20 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
       periodos.push({ inicio: grupoAtual[0], fim: grupoAtual[grupoAtual.length - 1] });
     }
 
-    return periodos.map(p => `${format(p.inicio, "dd/MM/yyyy")} à ${format(p.fim, "dd/MM/yyyy")}`);
+    return periodos.map(
+      (p) => `${format(p.inicio, "dd/MM/yyyy")} à ${format(p.fim, "dd/MM/yyyy")}`
+    );
   }
-
-  const API_URL = "https://esta-escala.vercel.app/api/escalas";
 
   useEffect(() => {
     const carregarEscalas = async () => {
       if (!cpfBusca) return;
 
       try {
-        // Caminho relativo, funciona com proxy em dev e produção
-        const res = await fetch(`/api/escalas?cpf=${cpfBusca}`);
+        // 🔹 Usa a API hospedada no Vercel
+        const res = await fetch(
+          `https://esta-escala.vercel.app/api/escalas?cpf=${cpfBusca}`
+        );
 
         if (!res.ok) {
           console.error("Erro ao chamar backend:", res.statusText);
@@ -140,14 +132,12 @@ export default function CalendarioMensal({ cpfBusca, pesquisando }: { cpfBusca: 
 
         const periodos = agruparPeriodosFerias(data.escalas || []);
         setPeriodosFerias(periodos);
-
       } catch (err) {
         console.error("Erro ao chamar backend:", err);
         setFuncionarioExiste(false);
         setEscalas([]);
       }
     };
-
 
     carregarEscalas();
   }, [cpfBusca, dataAtual]);
