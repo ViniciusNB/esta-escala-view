@@ -60,13 +60,19 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
 
   useEffect(() => {
     const carregar = async () => {
+      const url = `https://esta-escala.vercel.app/api/unidade?unidadeId=${unidadeId}&mes=${format(dataAtual, "yyyy-MM")}`
       try {
-        const res = await fetch(
-          `esta-escala.vercel.app/api/unidade?unidadeId=${unidadeId}&mes=${format(
-            dataAtual,
-            "yyyy-MM"
-          )}`
-        );
+        const res = await fetch(url);
+        const text = await res.text();
+        console.log("Resposta recebida:", text);
+
+        try {
+          const data = JSON.parse(text);
+          // continue normalmente...
+        } catch (e) {
+          console.error("Resposta não era JSON:", text);
+        }
+
 
         if (!res.ok) {
           console.error("Erro ao chamar backend:", res.statusText);
