@@ -74,7 +74,7 @@ function AppContent() {
           <SearchRoundedIcon className={`absolute mt-3 ml-3 ${pesquisando ? "text-green-500" : "text-gray-400"}`} />
           <input
             type="text"
-            placeholder="Buscar por CPF"
+            placeholder="Buscar por CPF ou nº da unidade"
             className="border-2 border-green-500 focus:border-green-500 focus:ring-2 focus:ring-green-500 active:border-green-500 p-2 pl-10 mb-4 rounded-full bg-gray-900 text-gray-300 w-[300px]"
             value={input}
             onChange={(e) => {
