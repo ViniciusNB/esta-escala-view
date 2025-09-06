@@ -62,7 +62,7 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
     const carregar = async () => {
       try {
         const res = await fetch(
-          `/api/unidade?unidadeId=${unidadeId}&mes=${format(
+          `esta-escala.vercel.app/api/unidade?unidadeId=${unidadeId}&mes=${format(
             dataAtual,
             "yyyy-MM"
           )}`
