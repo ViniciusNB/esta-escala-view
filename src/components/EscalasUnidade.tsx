@@ -124,6 +124,35 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
                 ? "bg-orange-300 text-orange-900"
                 : "bg-white text-gray-800";
 
+  const funcionariosOrdenados = [...funcionarios].sort((a, b) => {
+    const entradaA = escalas
+      .filter(
+        (e) => e.funcionario.id === a.id && e.tipo === "TRABALHAR" && e.inicio
+      )
+      .map((e) => e.inicio!.slice(0, 5))
+      .sort()[0];
+
+    const entradaB = escalas
+      .filter(
+        (e) => e.funcionario.id === b.id && e.tipo === "TRABALHAR" && e.inicio
+      )
+      .map((e) => e.inicio!.slice(0, 5))
+      .sort()[0];
+
+    if (!entradaA && !entradaB) {
+      return a.nome.localeCompare(b.nome, "pt-BR");
+    }
+
+    if (!entradaA) return 1;
+    if (!entradaB) return -1;
+
+    return (
+      entradaA.localeCompare(entradaB) ||
+      a.nome.localeCompare(b.nome, "pt-BR")
+    );
+  });
+
+
   return (
     <div className={`${isDesktop ? "w-[80em]" : "w-full"} z-40`}>
       {/* Nome da unidade pesquisada */}
@@ -188,7 +217,7 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
                   </thead>
 
                   <tbody>
-                    {funcionarios.map((f, idx) => (
+                    {funcionariosOrdenados.map((f, idx) => (
                       <tr
                         key={f.id}
                         className={`group ${idx % 2 === 0 ? "bg-gray-50" : "bg-white"
