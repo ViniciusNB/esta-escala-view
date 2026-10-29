@@ -84,14 +84,51 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
           return;
         }
 
-        // extrai funcionários únicos a partir das escalas
+        // Extrai funcionários únicos e ordena pelo primeiro horário de entrada
+        // em que trabalham no mês selecionado.
+        const escalasRecebidas: Escala[] = data.escalas || [];
+
         const funcionariosUnicos = Array.from(
           new Map<string, Funcionario>(
-            (data.escalas || [])
-              .filter((e: Escala) => !!e.funcionario && !!e.funcionario.id)
-              .map((e: Escala) => [e.funcionario.id, e.funcionario] as [string, Funcionario])
+            escalasRecebidas
+              .filter((e) => !!e.funcionario?.id)
+              .map((e) => [
+                e.funcionario.id,
+                e.funcionario,
+              ] as [string, Funcionario])
           ).values()
-        ).sort((a, b) => a.nome.localeCompare(b.nome));
+        ).sort((a, b) => {
+          const obterPrimeiroHorario = (funcionarioId: string): string | null => {
+            const horarios = escalasRecebidas
+              .filter(
+                (e) =>
+                  e.funcionario?.id === funcionarioId &&
+                  e.tipo === "TRABALHAR" &&
+                  !!e.inicio
+              )
+              .map((e) => e.inicio!.slice(0, 5))
+              .sort((horaA, horaB) => horaA.localeCompare(horaB));
+
+            return horarios[0] ?? null;
+          };
+
+          const horarioA = obterPrimeiroHorario(a.id);
+          const horarioB = obterPrimeiroHorario(b.id);
+
+          // Funcionários sem horário de trabalho ficam depois dos demais.
+          if (!horarioA && !horarioB) {
+            return a.nome.localeCompare(b.nome, "pt-BR");
+          }
+
+          if (!horarioA) return 1;
+          if (!horarioB) return -1;
+
+          // Desempata pelo nome quando os horários forem iguais.
+          return (
+            horarioA.localeCompare(horarioB) ||
+            a.nome.localeCompare(b.nome, "pt-BR")
+          );
+        });
 
         setTemEscalas(true);
         setFuncionarios(funcionariosUnicos);
