@@ -40,6 +40,7 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
   const [escalas, setEscalas] = useState<Escala[]>([]);
   const [unidadeEncontrada, setUnidadeEncontrada] = useState(false);
   const [nomeUnidade, setNomeUnidade] = useState<string>("");
+  const [openDados, setOpenDados] = useState(false);
 
   const inicioMes = startOfMonth(dataAtual);
   const fimMes = endOfMonth(dataAtual);
@@ -84,51 +85,14 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
           return;
         }
 
-        // Extrai funcionários únicos e ordena pelo primeiro horário de entrada
-        // em que trabalham no mês selecionado.
-        const escalasRecebidas: Escala[] = data.escalas || [];
-
+        // extrai funcionários únicos a partir das escalas
         const funcionariosUnicos = Array.from(
           new Map<string, Funcionario>(
-            escalasRecebidas
-              .filter((e) => !!e.funcionario?.id)
-              .map((e) => [
-                e.funcionario.id,
-                e.funcionario,
-              ] as [string, Funcionario])
+            (data.escalas || [])
+              .filter((e: Escala) => !!e.funcionario && !!e.funcionario.id)
+              .map((e: Escala) => [e.funcionario.id, e.funcionario] as [string, Funcionario])
           ).values()
-        ).sort((a, b) => {
-          const obterPrimeiroHorario = (funcionarioId: string): string | null => {
-            const horarios = escalasRecebidas
-              .filter(
-                (e) =>
-                  e.funcionario?.id === funcionarioId &&
-                  e.tipo === "TRABALHAR" &&
-                  !!e.inicio
-              )
-              .map((e) => e.inicio!.slice(0, 5))
-              .sort((horaA, horaB) => horaA.localeCompare(horaB));
-
-            return horarios[0] ?? null;
-          };
-
-          const horarioA = obterPrimeiroHorario(a.id);
-          const horarioB = obterPrimeiroHorario(b.id);
-
-          // Funcionários sem horário de trabalho ficam depois dos demais.
-          if (!horarioA && !horarioB) {
-            return a.nome.localeCompare(b.nome, "pt-BR");
-          }
-
-          if (!horarioA) return 1;
-          if (!horarioB) return -1;
-
-          // Desempata pelo nome quando os horários forem iguais.
-          return (
-            horarioA.localeCompare(horarioB) ||
-            a.nome.localeCompare(b.nome, "pt-BR")
-          );
-        });
+        ).sort((a, b) => a.nome.localeCompare(b.nome));
 
         setTemEscalas(true);
         setFuncionarios(funcionariosUnicos);
@@ -283,6 +247,77 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
                   </tbody>
                 </table>
               </div>
+
+
+              {/* Legenda */}
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                {["TRABALHAR", "FOLGA", "FÉRIAS", "FALTA", "AFASTADO", "SERVIÇO EXTERNO"].map((tipo) => (
+                  <div
+                    key={tipo}
+                    className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold ${corTipo(tipo)}`}
+                  >
+                    {tipo}
+                  </div>
+                ))}
+              </div>
+
+              <div className={isDesktop ? "absolute top-60 left-0 pl-10" : "mt-4"}>
+                <div className="border-2 border-gray-400 p-3 rounded-lg bg-gray-800 animate-escalaV backdrop-blur-md bg-opacity-30">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between px-4 font-semibold text-white"
+                    onClick={() => setOpenDados(!openDados)}
+                    aria-expanded={openDados}
+                  >
+                    <span>Dados da escala — {nomeUnidade}</span>
+                    <span>{openDados ? "−" : "+"}</span>
+                  </button>
+                  {openDados && (
+                    <>
+                      <div className="border border-gray-400 my-3 animate-escalaHorizontal" />
+                      <div className="text-center text-gray-300 animate-expandir">
+                        <h3 className="font-semibold text-white">Funcionários por horário de início</h3>
+                        {(() => {
+                          const horarios = new Map<string, Set<string>>();
+                          escalas.filter((e) => e.tipo === "TRABALHAR").forEach((e) => {
+                            const hora = formatHora(e.inicio);
+                            if (!horarios.has(hora)) horarios.set(hora, new Set());
+                            horarios.get(hora)!.add(e.funcionario.id);
+                          });
+                          return horarios.size ? (
+                            <ul className="mb-3">
+                              {[...horarios.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([hora, ids]) => (
+                                <li key={hora}>{hora}: {[...ids].map((id) => funcionarios.find((f) => f.id === id)?.nome).filter(Boolean).join(", ")}</li>
+                              ))}
+                            </ul>
+                          ) : <p className="mb-3">Nenhum funcionário trabalhando.</p>;
+                        })()}
+                        <h3 className="font-semibold text-white">Quantidade por turno (por dia)</h3>
+                        {(() => {
+                          const turnos = new Map<string, Set<string>>();
+                          escalas.filter((e) => e.tipo === "TRABALHAR").forEach((e) => {
+                            const hora = Number(e.inicio?.slice(0, 2));
+                            const turno = hora < 12 ? "Manhã" : hora < 18 ? "Tarde" : "Noite";
+                            const chave = `${e.dia} — ${turno}`;
+                            if (!turnos.has(chave)) turnos.set(chave, new Set());
+                            turnos.get(chave)!.add(e.funcionario.id);
+                          });
+                          return <ul className="mb-3">{[...turnos.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([turno, ids]) => <li key={turno}>{turno}: {ids.size}</li>)}</ul>;
+                        })()}
+                        <h3 className="font-semibold text-white">Quantidade de funcionários por dia</h3>
+                        <ul>
+                          {diasMes.map((dia) => {
+                            const iso = format(dia, "yyyy-MM-dd");
+                            const quantidade = new Set(escalas.filter((e) => e.dia === iso && e.tipo === "TRABALHAR").map((e) => e.funcionario.id)).size;
+                            return <li key={iso}>{format(dia, "dd/MM (EEE)", { locale: ptBR })}: {quantidade}</li>;
+                          })}
+                        </ul>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
             </>
           ) : (
             <h1 className="text-gray-500 font-bold">Unidade não encontrada.</h1>
