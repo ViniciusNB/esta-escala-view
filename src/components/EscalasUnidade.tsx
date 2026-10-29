@@ -420,69 +420,141 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
                         )}
                       </section>
 
-                      {/* Quantidade por turno */}
+                      
+                      {/* Quantidade por turno — visão compacta por dia */}
                       <section className="mt-6">
-                        <h4 className="mb-3 text-base font-bold text-white">
-                          Quantidade por turno e dia
-                        </h4>
-
-                        {turnos.size > 0 ? (
-                          <div className="overflow-x-auto rounded-xl border border-gray-700">
-                            <table className="w-full min-w-[320px] border-collapse text-sm">
-                              <thead>
-                                <tr className="bg-gray-800 text-gray-300">
-                                  <th className="px-4 py-3 text-left font-semibold">
-                                    Data
-                                  </th>
-                                  <th className="px-4 py-3 text-left font-semibold">
-                                    Turno
-                                  </th>
-                                  <th className="px-4 py-3 text-right font-semibold">
-                                    Funcionários
-                                  </th>
-                                </tr>
-                              </thead>
-
-                              <tbody>
-                                {[...turnos.entries()]
-                                  .sort(([a], [b]) => a.localeCompare(b))
-                                  .map(([chave, ids]) => {
-                                    const [dia, turno] = chave.split("|");
-
-                                    return (
-                                      <tr
-                                        key={chave}
-                                        className="border-t border-gray-700 text-gray-300 transition hover:bg-gray-800/60"
-                                      >
-                                        <td className="px-4 py-3">
-                                          {format(
-                                            new Date(`${dia}T12:00:00`),
-                                            "dd/MM/yyyy",
-                                            { locale: ptBR }
-                                          )}
-                                        </td>
-
-                                        <td className="px-4 py-3">
-                                          <span className="inline-flex rounded-full bg-gray-800 px-3 py-1 text-xs font-medium">
-                                            {turno}
-                                          </span>
-                                        </td>
-
-                                        <td className="px-4 py-3 text-right font-bold text-white">
-                                          {ids.size}
-                                        </td>
-                                      </tr>
-                                    );
-                                  })}
-                              </tbody>
-                            </table>
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <h4 className="text-base font-bold text-white">
+                              Quantidade por turno
+                            </h4>
+                            <p className="mt-1 text-xs text-gray-400">
+                              Distribuição diária de funcionários por período
+                            </p>
                           </div>
-                        ) : (
-                          <p className="rounded-xl bg-gray-800/50 p-4 text-sm text-gray-400">
-                            Não há turnos registrados neste mês.
-                          </p>
-                        )}
+
+                          <div className="flex gap-2 text-xs">
+                            <span className="rounded-full bg-amber-500/15 px-2 py-1 text-amber-300">
+                              Manhã
+                            </span>
+                            <span className="rounded-full bg-sky-500/15 px-2 py-1 text-sky-300">
+                              Tarde
+                            </span>
+                            <span className="rounded-full bg-violet-500/15 px-2 py-1 text-violet-300">
+                              Noite
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                          {diasMes.map((dia) => {
+                            const iso = format(dia, "yyyy-MM-dd");
+
+                            const quantidadeTurno = (turno: string) =>
+                              turnos.get(`${iso}|${turno}`)?.size ?? 0;
+
+                            const manha = quantidadeTurno("Manhã");
+                            const tarde = quantidadeTurno("Tarde");
+                            const noite = quantidadeTurno("Noite");
+
+                            const total = manha + tarde + noite;
+
+                            return (
+                              <div
+                                key={iso}
+                                className="rounded-xl border border-gray-700 bg-gray-800/60 p-3 transition hover:border-gray-500 hover:bg-gray-800"
+                              >
+                                {/* Cabeçalho do dia */}
+                                <div className="mb-3 flex items-center justify-between">
+                                  <div>
+                                    <p className="text-sm font-bold capitalize text-white">
+                                      {format(dia, "EEEE", { locale: ptBR })}
+                                    </p>
+                                    <p className="text-xs text-gray-400">
+                                      {format(dia, "dd/MM/yyyy")}
+                                    </p>
+                                  </div>
+
+                                  <div className="text-right">
+                                    <span className="text-lg font-bold text-white">
+                                      {total}
+                                    </span>
+                                    <p className="text-[10px] text-gray-400">
+                                      por turno*
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {/* Quantidades por período */}
+                                <div className="grid grid-cols-3 gap-2">
+                                  <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-2 text-center">
+                                    <p className="text-[10px] font-semibold uppercase text-amber-300">
+                                      Manhã
+                                    </p>
+                                    <p className="mt-1 text-xl font-bold text-amber-200">
+                                      {manha}
+                                    </p>
+                                  </div>
+
+                                  <div className="rounded-lg border border-sky-500/20 bg-sky-500/10 p-2 text-center">
+                                    <p className="text-[10px] font-semibold uppercase text-sky-300">
+                                      Tarde
+                                    </p>
+                                    <p className="mt-1 text-xl font-bold text-sky-200">
+                                      {tarde}
+                                    </p>
+                                  </div>
+
+                                  <div className="rounded-lg border border-violet-500/20 bg-violet-500/10 p-2 text-center">
+                                    <p className="text-[10px] font-semibold uppercase text-violet-300">
+                                      Noite
+                                    </p>
+                                    <p className="mt-1 text-xl font-bold text-violet-200">
+                                      {noite}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {/* Indicador visual da distribuição */}
+                                {total > 0 && (
+                                  <div className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-gray-700">
+                                    {manha > 0 && (
+                                      <div
+                                        className="bg-amber-400"
+                                        style={{ width: `${(manha / total) * 100}%` }}
+                                      />
+                                    )}
+                                    {tarde > 0 && (
+                                      <div
+                                        className="bg-sky-400"
+                                        style={{ width: `${(tarde / total) * 100}%` }}
+                                      />
+                                    )}
+                                    {noite > 0 && (
+                                      <div
+                                        className="bg-violet-400"
+                                        style={{ width: `${(noite / total) * 100}%` }}
+                                      />
+                                    )}
+                                  </div>
+                                )}
+
+                                {total === 0 && (
+                                  <p className="mt-2 text-center text-xs text-gray-500">
+                                    Nenhum funcionário escalado
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <p className="mt-3 text-xs text-gray-500">
+                          * Soma das quantidades dos três turnos. Um mesmo funcionário pode
+                          aparecer em mais de um turno no mesmo dia.
+                        </p>
                       </section>
+                      
 
                       {/* Quantidade por dia */}
                       <section className="mt-6">
