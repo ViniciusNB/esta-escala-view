@@ -261,61 +261,271 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
                 ))}
               </div>
 
-              <div className={isDesktop ? "absolute top-60 left-0 pl-10" : "mt-4"}>
-                <div className="border-2 border-gray-400 p-3 rounded-lg bg-gray-800 animate-escalaV backdrop-blur-md bg-opacity-30">
-                  <button
-                    type="button"
-                    className="flex w-full items-center justify-between px-4 font-semibold text-white"
-                    onClick={() => setOpenDados(!openDados)}
-                    aria-expanded={openDados}
-                  >
-                    <span>Dados da escala — {nomeUnidade}</span>
-                    <span>{openDados ? "−" : "+"}</span>
-                  </button>
-                  {openDados && (
-                    <>
-                      <div className="border border-gray-400 my-3 animate-escalaHorizontal" />
-                      <div className="text-center text-gray-300 animate-expandir">
-                        <h3 className="font-semibold text-white">Funcionários por horário de início</h3>
-                        {(() => {
-                          const horarios = new Map<string, Set<string>>();
-                          escalas.filter((e) => e.tipo === "TRABALHAR").forEach((e) => {
-                            const hora = formatHora(e.inicio);
-                            if (!horarios.has(hora)) horarios.set(hora, new Set());
-                            horarios.get(hora)!.add(e.funcionario.id);
-                          });
-                          return horarios.size ? (
-                            <ul className="mb-3">
-                              {[...horarios.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([hora, ids]) => (
-                                <li key={hora}>{hora}: {[...ids].map((id) => funcionarios.find((f) => f.id === id)?.nome).filter(Boolean).join(", ")}</li>
-                              ))}
-                            </ul>
-                          ) : <p className="mb-3">Nenhum funcionário trabalhando.</p>;
-                        })()}
-                        <h3 className="font-semibold text-white">Quantidade por turno (por dia)</h3>
-                        {(() => {
-                          const turnos = new Map<string, Set<string>>();
-                          escalas.filter((e) => e.tipo === "TRABALHAR").forEach((e) => {
-                            const hora = Number(e.inicio?.slice(0, 2));
-                            const turno = hora < 12 ? "Manhã" : hora < 18 ? "Tarde" : "Noite";
-                            const chave = `${e.dia} — ${turno}`;
-                            if (!turnos.has(chave)) turnos.set(chave, new Set());
-                            turnos.get(chave)!.add(e.funcionario.id);
-                          });
-                          return <ul className="mb-3">{[...turnos.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([turno, ids]) => <li key={turno}>{turno}: {ids.size}</li>)}</ul>;
-                        })()}
-                        <h3 className="font-semibold text-white">Quantidade de funcionários por dia</h3>
-                        <ul>
-                          {diasMes.map((dia) => {
-                            const iso = format(dia, "yyyy-MM-dd");
-                            const quantidade = new Set(escalas.filter((e) => e.dia === iso && e.tipo === "TRABALHAR").map((e) => e.funcionario.id)).size;
-                            return <li key={iso}>{format(dia, "dd/MM (EEE)", { locale: ptBR })}: {quantidade}</li>;
-                          })}
-                        </ul>
+              
+              {/* Dados da escala — abaixo da tabela e da legenda */}
+              <div className="relative z-0 mt-6 w-full overflow-hidden rounded-2xl border border-gray-700 bg-gray-900/80 shadow-lg">
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition hover:bg-gray-800/80"
+                  onClick={() => setOpenDados(!openDados)}
+                  aria-expanded={openDados}
+                >
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-white">
+                      Dados da escala
+                    </h3>
+                    <p className="mt-1 text-xs sm:text-sm text-gray-400">
+                      {nomeUnidade} · {format(dataAtual, "MMMM yyyy", { locale: ptBR })}
+                    </p>
+                  </div>
+
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-600 bg-gray-800 text-xl text-white">
+                    {openDados ? "−" : "+"}
+                  </span>
+                </button>
+
+                {openDados && (() => {
+                  const escalasTrabalho = escalas.filter(
+                    (e) => e.tipo === "TRABALHAR"
+                  );
+
+                  const funcionariosTrabalhando = new Set(
+                    escalasTrabalho.map((e) => e.funcionario.id)
+                  ).size;
+
+                  const horarios = new Map<string, Set<string>>();
+
+                  escalasTrabalho.forEach((e) => {
+                    const hora = formatHora(e.inicio);
+
+                    if (!horarios.has(hora)) {
+                      horarios.set(hora, new Set());
+                    }
+
+                    horarios.get(hora)!.add(e.funcionario.id);
+                  });
+
+                  const turnos = new Map<string, Set<string>>();
+
+                  escalasTrabalho.forEach((e) => {
+                    const hora = Number(e.inicio?.slice(0, 2));
+
+                    const turno =
+                      hora < 12 ? "Manhã" : hora < 18 ? "Tarde" : "Noite";
+
+                    const chave = `${e.dia}|${turno}`;
+
+                    if (!turnos.has(chave)) {
+                      turnos.set(chave, new Set());
+                    }
+
+                    turnos.get(chave)!.add(e.funcionario.id);
+                  });
+
+                  const quantidadePorDia = diasMes.map((dia) => {
+                    const iso = format(dia, "yyyy-MM-dd");
+
+                    const quantidade = new Set(
+                      escalasTrabalho
+                        .filter((e) => e.dia === iso)
+                        .map((e) => e.funcionario.id)
+                    ).size;
+
+                    return {
+                      data: iso,
+                      dia: format(dia, "dd/MM (EEE)", { locale: ptBR }),
+                      quantidade,
+                    };
+                  });
+
+                  const totalDiasComTrabalho = quantidadePorDia.filter(
+                    (d) => d.quantidade > 0
+                  ).length;
+
+                  return (
+                    <div className="border-t border-gray-700 p-4 sm:p-6">
+                      {/* Indicadores */}
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <div className="rounded-xl border border-gray-700 bg-gray-800/70 p-4">
+                          <p className="text-sm text-gray-400">
+                            Funcionários escalados
+                          </p>
+                          <p className="mt-2 text-2xl font-bold text-white">
+                            {funcionariosTrabalhando}
+                          </p>
+                        </div>
+
+                        <div className="rounded-xl border border-gray-700 bg-gray-800/70 p-4">
+                          <p className="text-sm text-gray-400">
+                            Registros de trabalho
+                          </p>
+                          <p className="mt-2 text-2xl font-bold text-white">
+                            {escalasTrabalho.length}
+                          </p>
+                        </div>
+
+                        <div className="rounded-xl border border-gray-700 bg-gray-800/70 p-4">
+                          <p className="text-sm text-gray-400">
+                            Dias com funcionários trabalhando
+                          </p>
+                          <p className="mt-2 text-2xl font-bold text-white">
+                            {totalDiasComTrabalho}
+                            <span className="ml-1 text-sm font-normal text-gray-400">
+                              de {diasMes.length} dias
+                            </span>
+                          </p>
+                        </div>
                       </div>
-                    </>
-                  )}
-                </div>
+
+                      {/* Horários de entrada */}
+                      <section className="mt-6">
+                        <h4 className="mb-3 text-base font-bold text-white">
+                          Funcionários por horário de início
+                        </h4>
+
+                        {horarios.size > 0 ? (
+                          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                            {[...horarios.entries()]
+                              .sort(([a], [b]) => a.localeCompare(b))
+                              .map(([hora, ids]) => (
+                                <div
+                                  key={hora}
+                                  className="rounded-xl border border-gray-700 bg-gray-800/50 p-4"
+                                >
+                                  <div className="mb-2 flex items-center justify-between gap-3">
+                                    <span className="font-bold text-green-400">
+                                      {hora}
+                                    </span>
+
+                                    <span className="rounded-full bg-gray-700 px-3 py-1 text-xs text-gray-200">
+                                      {ids.size} {ids.size === 1 ? "funcionário" : "funcionários"}
+                                    </span>
+                                  </div>
+
+                                  <p className="break-words text-sm leading-relaxed text-gray-300">
+                                    {[...ids]
+                                      .map((id) =>
+                                        funcionarios.find((f) => f.id === id)?.nome
+                                      )
+                                      .filter(Boolean)
+                                      .join(", ")}
+                                  </p>
+                                </div>
+                              ))}
+                          </div>
+                        ) : (
+                          <p className="rounded-xl bg-gray-800/50 p-4 text-sm text-gray-400">
+                            Nenhum funcionário trabalhando neste mês.
+                          </p>
+                        )}
+                      </section>
+
+                      {/* Quantidade por turno */}
+                      <section className="mt-6">
+                        <h4 className="mb-3 text-base font-bold text-white">
+                          Quantidade por turno e dia
+                        </h4>
+
+                        {turnos.size > 0 ? (
+                          <div className="overflow-x-auto rounded-xl border border-gray-700">
+                            <table className="w-full min-w-[320px] border-collapse text-sm">
+                              <thead>
+                                <tr className="bg-gray-800 text-gray-300">
+                                  <th className="px-4 py-3 text-left font-semibold">
+                                    Data
+                                  </th>
+                                  <th className="px-4 py-3 text-left font-semibold">
+                                    Turno
+                                  </th>
+                                  <th className="px-4 py-3 text-right font-semibold">
+                                    Funcionários
+                                  </th>
+                                </tr>
+                              </thead>
+
+                              <tbody>
+                                {[...turnos.entries()]
+                                  .sort(([a], [b]) => a.localeCompare(b))
+                                  .map(([chave, ids]) => {
+                                    const [dia, turno] = chave.split("|");
+
+                                    return (
+                                      <tr
+                                        key={chave}
+                                        className="border-t border-gray-700 text-gray-300 transition hover:bg-gray-800/60"
+                                      >
+                                        <td className="px-4 py-3">
+                                          {format(
+                                            new Date(`${dia}T12:00:00`),
+                                            "dd/MM/yyyy",
+                                            { locale: ptBR }
+                                          )}
+                                        </td>
+
+                                        <td className="px-4 py-3">
+                                          <span className="inline-flex rounded-full bg-gray-800 px-3 py-1 text-xs font-medium">
+                                            {turno}
+                                          </span>
+                                        </td>
+
+                                        <td className="px-4 py-3 text-right font-bold text-white">
+                                          {ids.size}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <p className="rounded-xl bg-gray-800/50 p-4 text-sm text-gray-400">
+                            Não há turnos registrados neste mês.
+                          </p>
+                        )}
+                      </section>
+
+                      {/* Quantidade por dia */}
+                      <section className="mt-6">
+                        <h4 className="mb-3 text-base font-bold text-white">
+                          Funcionários trabalhando por dia
+                        </h4>
+
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7">
+                          {quantidadePorDia.map((item) => (
+                            <div
+                              key={item.data}
+                              className={`rounded-lg border p-3 ${
+                                item.quantidade > 0
+                                  ? "border-gray-700 bg-gray-800/70"
+                                  : "border-gray-800 bg-gray-900/50"
+                              }`}
+                            >
+                              <p className="text-xs capitalize text-gray-400">
+                                {item.dia}
+                              </p>
+
+                              <p
+                                className={`mt-2 text-xl font-bold ${
+                                  item.quantidade > 0
+                                    ? "text-green-400"
+                                    : "text-gray-500"
+                                }`}
+                              >
+                                {item.quantidade}
+                              </p>
+
+                              <p className="text-xs text-gray-500">
+                                {item.quantidade === 1
+                                  ? "funcionário"
+                                  : "funcionários"}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    </div>
+                  );
+                })()}
               </div>
 
             </>
