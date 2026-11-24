@@ -93,7 +93,7 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
     );
   }, [mes]);
 
-  // Carrega os dados da unidade.
+  // Carrega os dados da unidade e também a jornada do último dia do mês anterior.
   useEffect(() => {
     const controller = new AbortController();
 
@@ -110,9 +110,7 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
 
         const res = await fetch(
           `https://esta-escala.vercel.app/api/unidade?${params}`,
-          {
-            signal: controller.signal,
-          },
+          { signal: controller.signal },
         );
 
         if (!res.ok) {
@@ -126,7 +124,51 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
         }
 
         const recebidas = Array.isArray(data.escalas) ? data.escalas : [];
+
         const validas = recebidas.filter((e) => e?.funcionario?.id && e?.dia);
+
+        // Busca o último dia do mês anterior.
+        const primeiroDiaMes = startOfMonth(dataAtual);
+        const dataAnteriorMes = format(
+          addDays(primeiroDiaMes, -1),
+          "yyyy-MM-dd",
+        );
+        const mesAnterior = format(addDays(primeiroDiaMes, -1), "yyyy-MM");
+
+        let registrosDiaAnterior: Escala[] = [];
+
+        try {
+          const paramsAnterior = new URLSearchParams({
+            unidadeId,
+            mes: mesAnterior,
+          });
+
+          const resAnterior = await fetch(
+            `https://esta-escala.vercel.app/api/unidade?${paramsAnterior}`,
+            { signal: controller.signal },
+          );
+
+          if (resAnterior.ok) {
+            const dataAnterior: RespostaAPI = await resAnterior.json();
+
+            registrosDiaAnterior = (
+              Array.isArray(dataAnterior.escalas) ? dataAnterior.escalas : []
+            ).filter((e) => e?.funcionario?.id && e?.dia === dataAnteriorMes);
+          }
+        } catch (erroAnterior) {
+          if (controller.signal.aborted) return;
+
+          console.warn(
+            "Não foi possível carregar o último dia do mês anterior:",
+            erroAnterior,
+          );
+        }
+
+        if (controller.signal.aborted) return;
+
+        // Mantém os registros do mês atual e acrescenta somente
+        // os registros do dia anterior ao início do mês.
+        const todasEscalas = [...validas, ...registrosDiaAnterior];
 
         const mapa = new Map<string, Funcionario>();
 
@@ -134,7 +176,7 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
           if (f?.id) mapa.set(f.id, f);
         }
 
-        for (const e of validas) {
+        for (const e of todasEscalas) {
           mapa.set(e.funcionario.id, e.funcionario);
         }
 
@@ -144,7 +186,7 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
           ),
         );
 
-        setEscalas(validas);
+        setEscalas(todasEscalas);
         setNomeUnidade(data.unidade.nome || "");
         setUnidadeEncontrada(true);
       } catch (e) {
@@ -288,15 +330,23 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
         registrosHoje.find((e) => e.tipo === "TRABALHAR") ??
         registrosHoje[0];
 
-      // Verifica se existe uma jornada iniciada ontem que continua hoje.
-      const escalaAnterior = registrosOntem.find((e) => {
-        if (e.tipo !== "TRABALHAR" || !e.inicio || !e.fim) return false;
+      // Verifica se existe uma jornada iniciada ontem
+      // que continua durante a madrugada de hoje.
+      const jornadasAnteriores = registrosOntem.filter((e) => {
+        if (e.tipo !== "TRABALHAR" || !e.inicio || !e.fim) {
+          return false;
+        }
 
         const inicio = horaEmMinutos(e.inicio);
         const fim = horaEmMinutos(e.fim);
 
         return inicio !== null && fim !== null && fim <= inicio;
       });
+
+      // Prioriza a jornada da unidade selecionada.
+      const escalaAnterior =
+        jornadasAnteriores.find((e) => idUnidade(e) === unidadeId) ??
+        jornadasAnteriores[0];
 
       return {
         funcionario,
@@ -370,7 +420,8 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
   };
 
   const totalTrabalhandoDia = funcionariosEscalaDiaria.filter(
-    ({ escala }) => escala?.tipo === "TRABALHAR",
+    ({ escala, escalaAnterior }) =>
+      escala?.tipo === "TRABALHAR" || Boolean(escalaAnterior),
   ).length;
 
   const dados = useMemo(() => {
