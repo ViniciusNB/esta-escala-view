@@ -81,19 +81,22 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
     setDataAtual((atual) => addMonths(atual, delta));
   const isWeekend = (d: Date) => [0, 6].includes(getDay(d));
 
+  // Atualiza a data selecionada sempre que o mês mudar.
   useEffect(() => {
-    useEffect(() => {
-      const hoje = format(new Date(), "yyyy-MM-dd");
+    const hoje = format(new Date(), "yyyy-MM-dd");
 
-      const primeiraData = format(diasMes[0], "yyyy-MM-dd");
-      const ultimaData = format(diasMes[diasMes.length - 1], "yyyy-MM-dd");
+    const primeiraData = format(diasMes[0], "yyyy-MM-dd");
+    const ultimaData = format(diasMes[diasMes.length - 1], "yyyy-MM-dd");
 
-      setDataEscalaDiaria(
-        hoje >= primeiraData && hoje <= ultimaData ? hoje : primeiraData,
-      );
-    }, [mes]);
+    setDataEscalaDiaria(
+      hoje >= primeiraData && hoje <= ultimaData ? hoje : primeiraData,
+    );
+  }, [mes]);
 
+  // Carrega os dados da unidade.
+  useEffect(() => {
     const controller = new AbortController();
+
     const carregar = async () => {
       setCarregando(true);
       setErro(null);
@@ -101,40 +104,64 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
       setFuncionarios([]);
       setUnidadeEncontrada(false);
       setNomeUnidade("");
+
       try {
         const params = new URLSearchParams({ unidadeId, mes });
+
         const res = await fetch(
           `https://esta-escala.vercel.app/api/unidade?${params}`,
           {
             signal: controller.signal,
           },
         );
-        if (!res.ok)
+
+        if (!res.ok) {
           throw new Error(`Erro ao consultar a unidade (HTTP ${res.status}).`);
+        }
+
         const data: RespostaAPI = await res.json();
-        if (!data?.unidade) throw new Error("Unidade não encontrada.");
+
+        if (!data?.unidade) {
+          throw new Error("Unidade não encontrada.");
+        }
+
         const recebidas = Array.isArray(data.escalas) ? data.escalas : [];
         const validas = recebidas.filter((e) => e?.funcionario?.id && e?.dia);
+
         const mapa = new Map<string, Funcionario>();
-        for (const f of data.funcionarios || []) if (f?.id) mapa.set(f.id, f);
-        for (const e of validas) mapa.set(e.funcionario.id, e.funcionario);
+
+        for (const f of data.funcionarios || []) {
+          if (f?.id) mapa.set(f.id, f);
+        }
+
+        for (const e of validas) {
+          mapa.set(e.funcionario.id, e.funcionario);
+        }
+
         setFuncionarios(
           [...mapa.values()].sort((a, b) =>
             a.nome.localeCompare(b.nome, "pt-BR"),
           ),
         );
+
         setEscalas(validas);
         setNomeUnidade(data.unidade.nome || "");
         setUnidadeEncontrada(true);
       } catch (e) {
         if (controller.signal.aborted) return;
+
         console.error("Erro ao buscar dados da unidade:", e);
+
         setErro(e instanceof Error ? e.message : "Erro ao carregar escalas.");
       } finally {
-        if (!controller.signal.aborted) setCarregando(false);
+        if (!controller.signal.aborted) {
+          setCarregando(false);
+        }
       }
     };
+
     void carregar();
+
     return () => controller.abort();
   }, [unidadeId, mes]);
 
@@ -820,253 +847,260 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
               </div>
             )}
           </div>
-        </>
-      )}
+          {/* ESCALA DIÁRIA POR HORÁRIO */}
+          <section className="relative z-0 mt-6 w-full overflow-hidden rounded-2xl border border-gray-700 bg-gray-900/80 shadow-lg">
+            {/* Cabeçalho */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-700 px-4 py-4 sm:px-5">
+              <div>
+                <h3 className="text-base font-bold text-white sm:text-lg">
+                  Escala diária por horário
+                </h3>
 
-      {/* ESCALA DIÁRIA POR HORÁRIO */}
-      <section className="relative z-0 mt-6 w-full overflow-hidden rounded-2xl border border-gray-700 bg-gray-900/80 shadow-lg">
-        {/* Cabeçalho */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-700 px-4 py-4 sm:px-5">
-          <div>
-            <h3 className="text-base font-bold text-white sm:text-lg">
-              Escala diária por horário
-            </h3>
+                <p className="mt-1 text-xs text-gray-400">
+                  Visualização da jornada dos funcionários em intervalos de 15
+                  minutos
+                </p>
+              </div>
 
-            <p className="mt-1 text-xs text-gray-400">
-              Visualização da jornada dos funcionários em intervalos de 15
-              minutos
-            </p>
-          </div>
+              <div className="flex items-center gap-3 rounded-xl border border-gray-700 bg-gray-800 px-3 py-2">
+                <button
+                  type="button"
+                  onClick={() => mudarDiaEscala(-1)}
+                  disabled={
+                    dataEscalaDiaria === format(diasMes[0], "yyyy-MM-dd")
+                  }
+                  className="text-gray-300 transition hover:text-green-400 disabled:cursor-not-allowed disabled:opacity-30"
+                  aria-label="Dia anterior"
+                >
+                  <ArrowBackIosNewRoundedIcon fontSize="small" />
+                </button>
 
-          <div className="flex items-center gap-3 rounded-xl border border-gray-700 bg-gray-800 px-3 py-2">
-            <button
-              type="button"
-              onClick={() => mudarDiaEscala(-1)}
-              disabled={dataEscalaDiaria === format(diasMes[0], "yyyy-MM-dd")}
-              className="text-gray-300 transition hover:text-green-400 disabled:cursor-not-allowed disabled:opacity-30"
-              aria-label="Dia anterior"
-            >
-              <ArrowBackIosNewRoundedIcon fontSize="small" />
-            </button>
+                <div className="min-w-[125px] text-center">
+                  <p className="text-sm font-bold capitalize text-white">
+                    {format(new Date(`${dataEscalaDiaria}T12:00:00`), "EEEE", {
+                      locale: ptBR,
+                    })}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {format(
+                      new Date(`${dataEscalaDiaria}T12:00:00`),
+                      "dd/MM/yyyy",
+                    )}
+                  </p>
+                </div>
 
-            <div className="min-w-[125px] text-center">
-              <p className="text-sm font-bold capitalize text-white">
-                {format(new Date(`${dataEscalaDiaria}T12:00:00`), "EEEE", {
-                  locale: ptBR,
-                })}
-              </p>
-              <p className="text-xs text-gray-400">
-                {format(new Date(`${dataEscalaDiaria}T12:00:00`), "dd/MM/yyyy")}
-              </p>
+                <button
+                  type="button"
+                  onClick={() => mudarDiaEscala(1)}
+                  disabled={
+                    dataEscalaDiaria ===
+                    format(diasMes[diasMes.length - 1], "yyyy-MM-dd")
+                  }
+                  className="text-gray-300 transition hover:text-green-400 disabled:cursor-not-allowed disabled:opacity-30"
+                  aria-label="Próximo dia"
+                >
+                  <ArrowForwardIosRoundedIcon fontSize="small" />
+                </button>
+              </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => mudarDiaEscala(1)}
-              disabled={
-                dataEscalaDiaria ===
-                format(diasMes[diasMes.length - 1], "yyyy-MM-dd")
-              }
-              className="text-gray-300 transition hover:text-green-400 disabled:cursor-not-allowed disabled:opacity-30"
-              aria-label="Próximo dia"
-            >
-              <ArrowForwardIosRoundedIcon fontSize="small" />
-            </button>
-          </div>
-        </div>
+            {/* Resumo */}
+            <div className="flex flex-wrap items-center gap-4 border-b border-gray-700 bg-gray-800/50 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
+                <span className="text-xs text-gray-300">
+                  {totalTrabalhandoDia} funcionários trabalhando
+                </span>
+              </div>
 
-        {/* Resumo */}
-        <div className="flex flex-wrap items-center gap-4 border-b border-gray-700 bg-gray-800/50 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
-            <span className="text-xs text-gray-300">
-              {totalTrabalhandoDia} funcionários trabalhando
-            </span>
-          </div>
+              <div className="flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded bg-green-200 text-[10px] font-bold text-green-900">
+                  T
+                </span>
+                <span className="text-xs text-gray-300">
+                  Em horário de trabalho
+                </span>
+              </div>
 
-          <div className="flex items-center gap-2">
-            <span className="flex h-5 w-5 items-center justify-center rounded bg-green-200 text-[10px] font-bold text-green-900">
-              T
-            </span>
-            <span className="text-xs text-gray-300">
-              Em horário de trabalho
-            </span>
-          </div>
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded bg-white" />
+                <span className="text-xs text-gray-300">
+                  Fora da jornada ou intervalo
+                </span>
+              </div>
+            </div>
 
-          <div className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded bg-white" />
-            <span className="text-xs text-gray-300">
-              Fora da jornada ou intervalo
-            </span>
-          </div>
-        </div>
-
-        {/* Tabela com rolagem horizontal */}
-        <div className="w-full overflow-x-auto shadow-inner">
-          <table className="w-max min-w-full border-collapse text-[10px] sm:text-xs">
-            <thead>
-              {/* Cabeçalho das horas */}
-              <tr className="bg-gradient-to-r from-gray-800 to-gray-700 text-white">
-                <th
-                  rowSpan={2}
-                  className="sticky left-0 z-30 min-w-[125px] border-b border-r border-gray-600 bg-gray-800 px-2 py-3 text-left font-semibold sm:min-w-[160px] sm:px-3"
-                >
-                  FUNCIONÁRIO
-                </th>
-
-                {Array.from({ length: 24 }, (_, hora) => (
-                  <th
-                    key={hora}
-                    colSpan={4}
-                    className="min-w-[136px] border-b border-r border-gray-600 bg-gray-800 px-1 py-2 text-center font-bold"
-                  >
-                    {String(hora).padStart(2, "0")}h
-                  </th>
-                ))}
-              </tr>
-
-              {/* Cabeçalho dos minutos */}
-              <tr className="bg-gray-700 text-gray-300">
-                {horariosDiarios.map((horario) => (
-                  <th
-                    key={horario.minutos}
-                    className="w-[34px] min-w-[34px] border-b border-r border-gray-600 py-2 text-center font-medium"
-                  >
-                    {String(horario.minuto).padStart(2, "0")}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-
-            <tbody>
-              {funcionariosEscalaDiaria.map(
-                (
-                  { funcionario, escala, escalaAnterior, outraUnidade },
-                  idx,
-                ) => {
-                  const trabalhandoHoje = escala?.tipo === "TRABALHAR";
-
-                  const status = escala?.tipo || "N/A";
-
-                  return (
-                    <tr
-                      key={funcionario.id}
-                      className={`group ${
-                        idx % 2 === 0 ? "bg-gray-50" : "bg-white"
-                      }`}
+            {/* Tabela com rolagem horizontal */}
+            <div className="w-full overflow-x-auto shadow-inner">
+              <table className="w-max min-w-full border-collapse text-[10px] sm:text-xs">
+                <thead>
+                  {/* Cabeçalho das horas */}
+                  <tr className="bg-gradient-to-r from-gray-800 to-gray-700 text-white">
+                    <th
+                      rowSpan={2}
+                      className="sticky left-0 z-30 min-w-[125px] border-b border-r border-gray-600 bg-gray-800 px-2 py-3 text-left font-semibold sm:min-w-[160px] sm:px-3"
                     >
-                      {/* Funcionário fixo */}
-                      <td
-                        className="sticky left-0 z-20 min-w-[125px] max-w-[125px] border border-gray-600 bg-white px-2 py-2 transition group-hover:brightness-90 sm:min-w-[160px] sm:max-w-[160px] sm:px-3"
-                        title={funcionario.nome}
+                      FUNCIONÁRIO
+                    </th>
+
+                    {Array.from({ length: 24 }, (_, hora) => (
+                      <th
+                        key={hora}
+                        colSpan={4}
+                        className="min-w-[136px] border-b border-r border-gray-600 bg-gray-800 px-1 py-2 text-center font-bold"
                       >
-                        <div className="flex flex-col">
-                          <span className="truncate text-[10px] font-bold text-gray-800 sm:text-xs">
-                            {funcionario.nome}
-                          </span>
+                        {String(hora).padStart(2, "0")}h
+                      </th>
+                    ))}
+                  </tr>
 
-                          {trabalhandoHoje ? (
-                            <span
-                              className={`mt-1 w-fit rounded px-1.5 py-0.5 text-[9px] font-bold ${
-                                outraUnidade
-                                  ? "bg-orange-200 text-orange-900"
-                                  : "bg-green-100 text-green-800"
-                              }`}
-                            >
-                              {outraUnidade
-                                ? escala?.unidade?.nome || "OUTRA UNIDADE"
-                                : "TRABALHANDO"}
-                            </span>
-                          ) : (
-                            <span
-                              className={`mt-1 w-fit rounded px-1.5 py-0.5 text-[9px] font-bold ${corTipo(status)}`}
-                            >
-                              {status}
-                            </span>
-                          )}
-                        </div>
-                      </td>
+                  {/* Cabeçalho dos minutos */}
+                  <tr className="bg-gray-700 text-gray-300">
+                    {horariosDiarios.map((horario) => (
+                      <th
+                        key={horario.minutos}
+                        className="w-[34px] min-w-[34px] border-b border-r border-gray-600 py-2 text-center font-medium"
+                      >
+                        {String(horario.minuto).padStart(2, "0")}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
 
-                      {/* Intervalos de 15 minutos */}
-                      {horariosDiarios.map((horario) => {
-                        const minuto = horario.minutos;
+                <tbody>
+                  {funcionariosEscalaDiaria.map(
+                    (
+                      { funcionario, escala, escalaAnterior, outraUnidade },
+                      idx,
+                    ) => {
+                      const trabalhandoHoje = escala?.tipo === "TRABALHAR";
 
-                        const trabalhaHoje = temTrabalhoNoIntervalo(
-                          escala,
-                          minuto,
-                        );
+                      const status = escala?.tipo || "N/A";
 
-                        const trabalhaOntem = temTrabalhoNoIntervalo(
-                          escalaAnterior,
-                          minuto,
-                          true,
-                        );
-
-                        const trabalhando = trabalhaHoje || trabalhaOntem;
-
-                        const outraUnidadeAnterior =
-                          trabalhaOntem &&
-                          Boolean(idUnidade(escalaAnterior!)) &&
-                          idUnidade(escalaAnterior!) !== unidadeId;
-
-                        const outraUnidadeAtual = trabalhaHoje && outraUnidade;
-
-                        const corCelula = !trabalhando
-                          ? "bg-white"
-                          : outraUnidadeAtual || outraUnidadeAnterior
-                            ? "bg-orange-200 text-orange-900"
-                            : "bg-green-200 text-green-900";
-
-                        return (
+                      return (
+                        <tr
+                          key={funcionario.id}
+                          className={`group ${
+                            idx % 2 === 0 ? "bg-gray-50" : "bg-white"
+                          }`}
+                        >
+                          {/* Funcionário fixo */}
                           <td
-                            key={horario.minutos}
-                            className={`h-9 w-[34px] min-w-[34px] border border-gray-300 p-0 text-center align-middle transition group-hover:brightness-95 ${corCelula}`}
-                            title={`${String(horario.hora).padStart(2, "0")}:${String(horario.minuto).padStart(2, "0")}`}
+                            className="sticky left-0 z-20 min-w-[125px] max-w-[125px] border border-gray-600 bg-white px-2 py-2 transition group-hover:brightness-90 sm:min-w-[160px] sm:max-w-[160px] sm:px-3"
+                            title={funcionario.nome}
                           >
-                            {trabalhando && (
-                              <span className="text-[10px] font-extrabold sm:text-xs">
-                                T
+                            <div className="flex flex-col">
+                              <span className="truncate text-[10px] font-bold text-gray-800 sm:text-xs">
+                                {funcionario.nome}
                               </span>
-                            )}
+
+                              {trabalhandoHoje ? (
+                                <span
+                                  className={`mt-1 w-fit rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                                    outraUnidade
+                                      ? "bg-orange-200 text-orange-900"
+                                      : "bg-green-100 text-green-800"
+                                  }`}
+                                >
+                                  {outraUnidade
+                                    ? escala?.unidade?.nome || "OUTRA UNIDADE"
+                                    : "TRABALHANDO"}
+                                </span>
+                              ) : (
+                                <span
+                                  className={`mt-1 w-fit rounded px-1.5 py-0.5 text-[9px] font-bold ${corTipo(status)}`}
+                                >
+                                  {status}
+                                </span>
+                              )}
+                            </div>
                           </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                },
-              )}
-            </tbody>
-          </table>
-        </div>
 
-        {/* Legenda */}
-        <div className="flex flex-wrap items-center gap-3 border-t border-gray-700 px-4 py-3">
-          <div className="flex items-center gap-1.5">
-            <span className="flex h-5 w-5 items-center justify-center rounded border border-green-300 bg-green-200 text-[10px] font-bold text-green-900">
-              T
-            </span>
-            <span className="text-xs text-gray-300">Trabalho na unidade</span>
-          </div>
+                          {/* Intervalos de 15 minutos */}
+                          {horariosDiarios.map((horario) => {
+                            const minuto = horario.minutos;
 
-          <div className="flex items-center gap-1.5">
-            <span className="flex h-5 w-5 items-center justify-center rounded border border-orange-300 bg-orange-200 text-[10px] font-bold text-orange-900">
-              T
-            </span>
-            <span className="text-xs text-gray-300">
-              Trabalho em outra unidade
-            </span>
-          </div>
+                            const trabalhaHoje = temTrabalhoNoIntervalo(
+                              escala,
+                              minuto,
+                            );
 
-          <div className="flex items-center gap-1.5">
-            <span className="h-5 w-5 rounded border border-gray-300 bg-white" />
-            <span className="text-xs text-gray-300">Sem expediente</span>
-          </div>
+                            const trabalhaOntem = temTrabalhoNoIntervalo(
+                              escalaAnterior,
+                              minuto,
+                              true,
+                            );
 
-          <p className="ml-auto text-[10px] text-gray-500">
-            Cada coluna representa 15 minutos
-          </p>
-        </div>
-      </section>
+                            const trabalhando = trabalhaHoje || trabalhaOntem;
+
+                            const outraUnidadeAnterior =
+                              trabalhaOntem &&
+                              Boolean(idUnidade(escalaAnterior!)) &&
+                              idUnidade(escalaAnterior!) !== unidadeId;
+
+                            const outraUnidadeAtual =
+                              trabalhaHoje && outraUnidade;
+
+                            const corCelula = !trabalhando
+                              ? "bg-white"
+                              : outraUnidadeAtual || outraUnidadeAnterior
+                                ? "bg-orange-200 text-orange-900"
+                                : "bg-green-200 text-green-900";
+
+                            return (
+                              <td
+                                key={horario.minutos}
+                                className={`h-9 w-[34px] min-w-[34px] border border-gray-300 p-0 text-center align-middle transition group-hover:brightness-95 ${corCelula}`}
+                                title={`${String(horario.hora).padStart(2, "0")}:${String(horario.minuto).padStart(2, "0")}`}
+                              >
+                                {trabalhando && (
+                                  <span className="text-[10px] font-extrabold sm:text-xs">
+                                    T
+                                  </span>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    },
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Legenda */}
+            <div className="flex flex-wrap items-center gap-3 border-t border-gray-700 px-4 py-3">
+              <div className="flex items-center gap-1.5">
+                <span className="flex h-5 w-5 items-center justify-center rounded border border-green-300 bg-green-200 text-[10px] font-bold text-green-900">
+                  T
+                </span>
+                <span className="text-xs text-gray-300">
+                  Trabalho na unidade
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <span className="flex h-5 w-5 items-center justify-center rounded border border-orange-300 bg-orange-200 text-[10px] font-bold text-orange-900">
+                  T
+                </span>
+                <span className="text-xs text-gray-300">
+                  Trabalho em outra unidade
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <span className="h-5 w-5 rounded border border-gray-300 bg-white" />
+                <span className="text-xs text-gray-300">Sem expediente</span>
+              </div>
+
+              <p className="ml-auto text-[10px] text-gray-500">
+                Cada coluna representa 15 minutos
+              </p>
+            </div>
+          </section>
+        </>
+      )}
     </div>
   );
 }
