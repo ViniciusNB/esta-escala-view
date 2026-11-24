@@ -177,29 +177,42 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
   }, [escalas]);
 
   const funcionariosOrdenados = useMemo(() => {
-    const menorEntrada = (id: string) =>
-      escalas
-        .filter(
-          (e) =>
-            e.funcionario.id === id &&
-            e.tipo === "TRABALHAR" &&
-            e.inicio &&
-            idUnidade(e) === unidadeId,
-        )
-        .map((e) => e.inicio!.slice(0, 5))
-        .sort()[0];
     return [...funcionarios].sort((a, b) => {
-      const entradaA = menorEntrada(a.id);
-      const entradaB = menorEntrada(b.id);
-      if (!entradaA && !entradaB) return a.nome.localeCompare(b.nome, "pt-BR");
-      if (!entradaA) return 1;
-      if (!entradaB) return -1;
-      return (
-        entradaA.localeCompare(entradaB) ||
-        a.nome.localeCompare(b.nome, "pt-BR")
+      const escalaA = escalas.find(
+        (e) => e.funcionario.id === a.id && e.dia === dataEscalaDiaria,
       );
+
+      const escalaB = escalas.find(
+        (e) => e.funcionario.id === b.id && e.dia === dataEscalaDiaria,
+      );
+
+      const trabalhaA =
+        escalaA?.tipo === "TRABALHAR" || escalaA?.tipo === "SERVIÇO EXTERNO";
+
+      const trabalhaB =
+        escalaB?.tipo === "TRABALHAR" || escalaB?.tipo === "SERVIÇO EXTERNO";
+
+      // Trabalhadores sempre aparecem primeiro.
+      if (trabalhaA !== trabalhaB) {
+        return trabalhaA ? -1 : 1;
+      }
+
+      // Entre trabalhadores, ordenar pelo horário de entrada.
+      if (trabalhaA && trabalhaB) {
+        const inicioA = escalaA?.inicio || "23:59";
+        const inicioB = escalaB?.inicio || "23:59";
+
+        const comparacaoHorario = inicioA.localeCompare(inicioB);
+
+        if (comparacaoHorario !== 0) {
+          return comparacaoHorario;
+        }
+      }
+
+      // Desempate pelo nome.
+      return a.nome.localeCompare(b.nome, "pt-BR");
     });
-  }, [funcionarios, escalas, unidadeId]);
+  }, [funcionarios, escalas, dataEscalaDiaria]);
 
   const escalasTrabalho = useMemo(
     () =>
