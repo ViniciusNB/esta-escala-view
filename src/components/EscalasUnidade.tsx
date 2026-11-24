@@ -177,15 +177,31 @@ export default function EscalasUnidade({ unidadeId }: { unidadeId: string }) {
       const hora = formatHora(e.inicio);
       if (!horarios.has(hora)) horarios.set(hora, new Set());
       horarios.get(hora)!.add(e.funcionario.id);
-      const horaNumerica = Number(e.inicio?.slice(0, 2));
-      const turno =
-        !e.inicio || !Number.isFinite(horaNumerica)
-          ? "Indefinido"
-          : horaNumerica < 12
-            ? "Manhã"
-            : horaNumerica < 18
-              ? "Tarde"
-              : "Noite";
+      const inicioMinutos = e.inicio
+        ? Number(e.inicio.slice(0, 2)) * 60 + Number(e.inicio.slice(3, 5))
+        : null;
+
+      const fimMinutos = e.fim
+        ? Number(e.fim.slice(0, 2)) * 60 + Number(e.fim.slice(3, 5))
+        : null;
+
+      let turno = "Indefinido";
+
+      if (
+        inicioMinutos !== null &&
+        fimMinutos !== null &&
+        Number.isFinite(inicioMinutos) &&
+        Number.isFinite(fimMinutos)
+      ) {
+        if (fimMinutos <= inicioMinutos) {
+          // Jornada que ultrapassa a meia-noite.
+          turno = "Noite";
+        } else if (fimMinutos <= 18 * 60) {
+          turno = "Manhã";
+        } else {
+          turno = "Tarde";
+        }
+      }
       const chave = `${e.dia}|${turno}`;
       if (!turnos.has(chave)) turnos.set(chave, new Set());
       turnos.get(chave)!.add(e.funcionario.id);
